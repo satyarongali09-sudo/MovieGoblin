@@ -1,7 +1,9 @@
 import express from "express";
 import cors from "cors";
-import helmet from "helmet";
+import _helmet from "helmet";
 import morgan from "morgan";
+
+const helmet = ((_helmet as any)?.default ?? _helmet) as (options?: any) => express.RequestHandler;
 import { env } from "./config/env.js";
 import { supabaseAdmin } from "./services/supabase.js";
 import attendanceRoutes from "./routes/attendance.js";
@@ -80,7 +82,7 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
   res.status(500).json({ error: message });
 });
 
-if (process.env.NODE_ENV !== "test") {
+if (process.env.NODE_ENV !== "test" && !process.env.VERCEL) {
   app.listen(env.PORT, () => {
     console.log(`VIDYASETU API listening on port ${env.PORT}`);
   });
