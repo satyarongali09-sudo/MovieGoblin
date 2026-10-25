@@ -1,0 +1,16 @@
+WordGoblin dataset preparation report
+=====================================
+TMDB source rows: 4803
+Telugu source rows: 1400
+Combined rows after title+year deduplication: 6201
+TMDB rows with missing overview: 4
+Telugu rows with missing overview: 179
+Rows with an overview in combined file: 6018
+Rows with a year: 6153
+Rows marked Telugu language (te): 1399
+
+Notes:
+- This is a first-pass merge for local development, not a final production dataset.
+- Duplicate matching uses normalized title + year; manually review possible alternate-title duplicates.
+- Telugu dataset entries have blank director/cast where the source did not provide those fields.
+- Verify dataset and source licensing before publishing or commercial use.

@@ -11,11 +11,44 @@ import mediaRoutes from "./routes/media.js";
 import pollRoutes from "./routes/polls.js";
 import questionRoutes from "./routes/questions.js";
 import sessionRoutes from "./routes/sessions.js";
+import moviegoblinRoutes from "./routes/moviegoblin.js";
 
 const app = express();
 
-app.use(helmet());
-app.use(cors({ origin: env.CORS_ORIGIN, credentials: true }));
+const configuredOrigins = env.CORS_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean);
+
+export function isAllowedOrigin(origin?: string): boolean {
+  if (!origin) {
+    return true;
+  }
+  if (configuredOrigins.includes(origin)) {
+    return true;
+  }
+  // In development, allow localhost and 127.0.0.1 on any port (e.g., 3000, 3001)
+  if (env.NODE_ENV !== "production") {
+    if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  })
+);
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 app.use(morgan("tiny"));
 
@@ -40,6 +73,7 @@ app.use("/polls", pollRoutes);
 app.use("/questions", questionRoutes);
 app.use("/attendance", attendanceRoutes);
 app.use("/media", mediaRoutes);
+app.use("/moviegoblin", moviegoblinRoutes);
 
 app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const message = err instanceof Error ? err.message : "Unexpected server error.";

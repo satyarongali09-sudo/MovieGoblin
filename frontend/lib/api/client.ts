@@ -3,16 +3,20 @@ type ApiOptions = RequestInit & {
 };
 
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+  const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000").replace(/\/+$/, "");
   const headers = new Headers(options.headers);
 
-  headers.set("Content-Type", "application/json");
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   if (options.token) {
     headers.set("Authorization", `Bearer ${options.token}`);
   }
 
-  const response = await fetch(`${baseUrl}${path}`, {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  const response = await fetch(`${baseUrl}${normalizedPath}`, {
     ...options,
     headers
   });

@@ -8,6 +8,10 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "seed:moviegoblin": "tsx scripts/seed-moviegoblin.ts",
+    "import:movies": "tsx scripts/import-movies.ts",
+    "build:meta": "tsx scripts/build-movie-meta.ts",
+    "test:moviegoblin": "tsx --test tests/**/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

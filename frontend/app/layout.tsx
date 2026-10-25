@@ -3,8 +3,8 @@ import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VIDYASETU",
-  description: "Live learning platform for teachers and students"
+  title: "WordGoblin",
+  description: "A daily movie-guessing game"
 };
 
 export default function RootLayout({

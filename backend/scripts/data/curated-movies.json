@@ -1,0 +1,182 @@
+[
+  {
+    "title": "The Godfather",
+    "aliases": ["Godfather", "The Godfather Part 1", "The Godfather Part I"],
+    "year": 1972,
+    "genres": ["Crime", "Drama"],
+    "plot": "An aging patriarch of an organized crime dynasty decides to hand power to his youngest and most reluctant son after an assassination attempt. Over three decades, a family built on loyalty slowly drowns in betrayal, vengeance, and violence.",
+    "clues": [
+      "A dynasty passes from father to reluctant son in a world of quiet omertà.",
+      "Francis Ford Coppola, 1972 — organised-crime epic spanning three generations.",
+      "Marlon Brando plays the don; Al Pacino is the son who swore he would never enter the family business."
+    ]
+  },
+  {
+    "title": "Jaws",
+    "aliases": ["Jaws 1", "The Shark Movie"],
+    "year": 1975,
+    "genres": ["Thriller", "Horror", "Adventure"],
+    "plot": "A New England coastal town is terrorised by an enormous man-eating great white shark during tourist season. A police chief with a fear of water, an eccentric marine biologist, and a grizzled hunter set sail to destroy the beast.",
+    "clues": [
+      "You're going to need a bigger boat — three men, one ocean, one monster.",
+      "Steven Spielberg, 1975 — the summer blockbuster that made everyone afraid of open water.",
+      "Roy Scheider plays a landlubbing police chief who teams up with a scientist and a salty old hunter."
+    ]
+  },
+  {
+    "title": "Star Wars: Episode IV - A New Hope",
+    "aliases": ["Star Wars", "A New Hope", "Star Wars 4", "Star Wars Episode 4", "Star Wars IV"],
+    "year": 1977,
+    "genres": ["Science Fiction", "Action", "Adventure"],
+    "plot": "A young farm boy from a desert planet joins a ragtag rebellion against a galaxy-spanning galactic empire and its planet-destroying superweapon, guided by the wisdom of the last knight of an ancient mystical order.",
+    "clues": [
+      "The mystical force binds a galaxy at war; a desert farm boy discovers his destined lineage.",
+      "George Lucas, 1977 — the space opera that transformed modern blockbuster cinema.",
+      "Mark Hamill, Carrie Fisher, and Harrison Ford battle an empire and a dark lord in black armor."
+    ]
+  },
+  {
+    "title": "Jurassic Park",
+    "aliases": ["Jurassic Park 1"],
+    "year": 1993,
+    "genres": ["Science Fiction", "Adventure", "Thriller"],
+    "plot": "A wealthy entrepreneur invites a team of scientists to tour an island wildlife preserve featuring genetically resurrected ancient reptiles. When sabotage disables the security grid, survivors must flee the predatory apex creatures on foot.",
+    "clues": [
+      "Life finds a way — and then breaches every electric perimeter on the tropical island.",
+      "Steven Spielberg, 1993 — cloned prehistoric predators run amok on a remote Costa Rican island.",
+      "Sam Neill plays a paleontologist protecting children alongside a chaos theorist played by Jeff Goldblum."
+    ]
+  },
+  {
+    "title": "The Lion King",
+    "aliases": ["Lion King"],
+    "year": 1994,
+    "genres": ["Animation", "Drama", "Adventure"],
+    "plot": "A royal lion cub flees into exile after his treacherous uncle murders the king and seizes the throne. Reared by carefree companions, the adult heir must confront his past and reclaim his rightful place in the great circle of life.",
+    "clues": [
+      "Betrayal in the savanna leaves a young royal in guilt-ridden exile until ancestral duty calls him back.",
+      "Disney animation, 1994 — a Shakespearean drama transposed to an African animal kingdom.",
+      "Features the voices of Matthew Broderick as the exiled prince and Jeremy Irons as his murderous uncle Scar."
+    ]
+  },
+  {
+    "title": "Forrest Gump",
+    "aliases": ["Gump"],
+    "year": 1994,
+    "genres": ["Drama", "Romance", "Comedy"],
+    "plot": "A kind-hearted Alabama man with a low IQ witnesses and unintentionally influences historical milestones of the twentieth century, all while longing to reunite with his troubled childhood companion.",
+    "clues": [
+      "Life is like a box of chocolates; he ran across the continent and kept his simple promise.",
+      "Robert Zemeckis, 1994 — an accidental journey through the Vietnam War, ping pong diplomacy, and Watergate.",
+      "Tom Hanks won Best Actor for playing a pure-hearted runner who achieves unexpected American greatness."
+    ]
+  },
+  {
+    "title": "Pulp Fiction",
+    "aliases": ["Pulp"],
+    "year": 1994,
+    "genres": ["Crime", "Thriller"],
+    "plot": "The lives of two philosophizing mob hitmen, a prizefighter on the run, a gangster's alluring wife, and a pair of diner bandits intertwine in four non-linear tales of underworld crime, redemption, and violence in Los Angeles.",
+    "clues": [
+      "Non-linear vignettes in Southern California; a glowing briefcase and a customized wallet.",
+      "Quentin Tarantino, 1994 — Palme d'Or-winning neo-noir with snappy dialogue and surf rock soundtracks.",
+      "John Travolta and Samuel L. Jackson star as sharply suited enforcers discussing royal burgers between jobs."
+    ]
+  },
+  {
+    "title": "The Shawshank Redemption",
+    "aliases": ["Shawshank Redemption", "Shawshank"],
+    "year": 1994,
+    "genres": ["Drama", "Crime"],
+    "plot": "A quiet banker falsely convicted of double homicide endures decades of brutal treatment in a corrupt state penitentiary, maintaining dignity and nurturing a secret escape strategy through patience and a small rock hammer.",
+    "clues": [
+      "Hope is a good thing, maybe the best of things, and no good thing ever dies behind prison stone.",
+      "Frank Darabont, 1994 — celebrated prison drama adapted from a Stephen King novella.",
+      "Tim Robbins plays the framed banker while Morgan Freeman narrates as his contraband-smuggling confidant."
+    ]
+  },
+  {
+    "title": "Toy Story",
+    "aliases": ["Toy Story 1"],
+    "year": 1995,
+    "genres": ["Animation", "Comedy", "Adventure"],
+    "plot": "A vintage pull-string cowboy doll finds his status as a child's favorite bedroom plaything threatened by an arrogant new laser-equipped astronaut action figure, sparking a rivalry that becomes an alliance when they are lost outdoors.",
+    "clues": [
+      "To infinity and beyond, seen from the perspective of an insecure vintage cowboy doll.",
+      "Pixar, 1995 — the historic first feature-length entirely computer-animated movie.",
+      "Tom Hanks voices the loyal sheriff toy while Tim Allen voices the delusional spaceman who thinks he is real."
+    ]
+  },
+  {
+    "title": "Clueless",
+    "aliases": ["Clueless 1995"],
+    "year": 1995,
+    "genres": ["Comedy", "Romance"],
+    "plot": "A superficial but genuinely well-meaning Beverly Hills high schooler attempts to improve the lives of teachers and classmates through matchmaking and fashion makeovers, only to realize how oblivious she is to her own feelings.",
+    "clues": [
+      "As if! A Beverly Hills socialite redesigns everyone else's romances while misreading her own heart.",
+      "Amy Heckerling, 1995 — high school comedy modernizing Jane Austen's Emma in 1990s Southern California.",
+      "Alicia Silverstone plays Cher Horowitz alongside Paul Rudd as her college ex-stepbrother."
+    ]
+  },
+  {
+    "title": "Titanic",
+    "aliases": ["Titanic 1997"],
+    "year": 1997,
+    "genres": ["Romance", "Drama", "History"],
+    "plot": "A penniless young artist and an unhappy aristocratic woman fall in love aboard a luxurious passenger liner on its doomed maiden voyage across the North Atlantic in April 1912.",
+    "clues": [
+      "An ill-fated luxury ocean liner, a blue diamond pendant, and a forbidden transatlantic romance.",
+      "James Cameron, 1997 — historic epic that won 11 Academy Awards and shattered box-office records.",
+      "Leonardo DiCaprio and Kate Winslet play Jack and Rose as the world's grandest ship strikes an iceberg."
+    ]
+  },
+  {
+    "title": "The Matrix",
+    "aliases": ["Matrix", "Matrix 1", "The Matrix 1999"],
+    "year": 1999,
+    "genres": ["Science Fiction", "Action"],
+    "plot": "A disillusioned software engineer and cyber hacker is awoken by shadowy freedom fighters to the shocking revelation that perceived reality is a neural simulation created by artificial intelligence machines harvesting humanity.",
+    "clues": [
+      "Choose between the red pill or the blue pill to see how deep the rabbit hole goes.",
+      "The Wachowskis, 1999 — cyberpunk action masterpiece that pioneered bullet-time cinematography.",
+      "Keanu Reeves plays Neo, Carrie-Anne Moss is Trinity, and Laurence Fishburne is the insurgent captain Morpheus."
+    ]
+  },
+  {
+    "title": "Gladiator",
+    "aliases": ["Gladiator 2000"],
+    "year": 2000,
+    "genres": ["Action", "Drama", "History"],
+    "plot": "A betrayed Roman general whose family is executed by a corrupt usurping emperor is sold into arena slavery, rising through combat tournaments to seek vengeance in the Colosseum before the public eye.",
+    "clues": [
+      "Are you not entertained? A fallen general fights his way through the blood-stained sands of Rome.",
+      "Ridley Scott, 2000 — sword-and-sandal historical revenge epic that captured the Best Picture Oscar.",
+      "Russell Crowe plays Maximus Decimus Meridius opposing Joaquin Phoenix as the treacherous emperor Commodus."
+    ]
+  },
+  {
+    "title": "Spirited Away",
+    "aliases": ["Sen to Chihiro no Kamikakushi", "Spirited Away 2001"],
+    "year": 2001,
+    "genres": ["Animation", "Fantasy", "Adventure"],
+    "plot": "A stubborn young girl wanders into an abandoned amusement park that is an opulent supernatural bathhouse for spirits. After her parents are cursed into swine, she must work for a ruthless sorceress to secure their release.",
+    "clues": [
+      "A young girl signs away her name to work in a grand mystical bathhouse for kami and spirits.",
+      "Hayao Miyazaki / Studio Ghibli, 2001 — Japan's record-setting animated fantasy and Oscar winner.",
+      "Follows ten-year-old Chihiro as she navigates a magical realm to free her transformed parents."
+    ]
+  },
+  {
+    "title": "Inception",
+    "aliases": ["Inception 2010"],
+    "year": 2010,
+    "genres": ["Science Fiction", "Action", "Thriller"],
+    "plot": "A skilled corporate spy who infiltrates targets' subconscious minds during dream states is offered the redemption of his criminal status if he can accomplish the inverse task: planting an unshakeable idea deep inside a CEO's mind.",
+    "clues": [
+      "Dreams within dreams; an architect designs gravity-defying mazes to implant an authentic thought.",
+      "Christopher Nolan, 2010 — mind-bending heist thriller featuring a spinning metal totem.",
+      "Leonardo DiCaprio leads a team of specialists descending through nested levels of shared dreaming."
+    ]
+  }
+]

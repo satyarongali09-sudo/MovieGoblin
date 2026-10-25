@@ -27,29 +27,15 @@ export function AppShell({ children, user, role }: AppShellProps) {
   const activeUser = user ?? (sessionUser ? getAuthenticatedUser(sessionUser) : undefined);
   const activeRole = role ?? sessionRole;
   const avatarUrl = getGoogleAvatarUrl(activeUser?.avatarUrl);
-  const classroomsPath = activeRole === "teacher" ? "/teacher/classrooms" : "/student/classrooms";
-
   return (
     <div className="shell">
       <header className="topbar">
         <Link className="brand" href="/">
-          VIDYASETU
+          WordGoblin
         </Link>
         <nav className="nav" aria-label="Primary">
-          {activeUser && activeRole ? (
-            <>
-              <Link href="/dashboard">Dashboard</Link>
-              <Link href={classroomsPath}>My classrooms</Link>
-              <Link href={`/${activeRole}/dashboard`}>{activeRole === "teacher" ? "Teacher workspace" : "Student workspace"}</Link>
-              <Link href="/profile">Profile</Link>
-            </>
-          ) : (
-            <>
-              <Link href="/">Home</Link>
-              <Link href="/#features">Features</Link>
-              <Link href="/#how-it-works">How it works</Link>
-            </>
-          )}
+          <Link href="/">Today's puzzle</Link>
+          {activeUser ? <Link href="/profile">Profile</Link> : null}
         </nav>
         {activeUser ? (
           <div className="account-menu">
