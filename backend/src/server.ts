@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { default as helmet } from "helmet";
+import helmet from "helmet";
 import morgan from "morgan";
 import { env } from "./config/env.js";
 import { supabaseAdmin } from "./services/supabase.js";
