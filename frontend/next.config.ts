@@ -20,10 +20,6 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
-        source: "/moviegoblin/:path*",
-        destination: `${backendUrl}/moviegoblin/:path*`
-      },
-      {
         source: "/classrooms/:path*",
         destination: `${backendUrl}/classrooms/:path*`
       },
