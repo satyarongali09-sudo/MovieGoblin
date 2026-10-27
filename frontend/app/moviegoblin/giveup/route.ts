@@ -23,7 +23,12 @@ export async function POST(request: Request) {
 
   try {
     const answer = await movieGoblinService.giveUp();
-    return NextResponse.json(answer);
+    return NextResponse.json(answer, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+      },
+    });
   } catch (err) {
     if (err instanceof CatalogUnavailableError) {
       return NextResponse.json(

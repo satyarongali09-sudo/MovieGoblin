@@ -9,6 +9,7 @@ import {
   loadStats,
   recordWin,
   recordGiveUp,
+  computeGameScore,
 } from "@/lib/game/daily";
 import {
   type AttributeKind,
@@ -73,6 +74,7 @@ function attrBadgeCode(kind: AttributeKind): string {
 }
 
 function AnswerCard({ answer }: { answer: RevealedAnswer }) {
+  const [imgFailed, setImgFailed] = useState(false);
   const facts = [
     answer.director ? { k: "Director", v: answer.director } : null,
     answer.cast?.length ? { k: "Starring", v: answer.cast.slice(0, 4).join(", ") } : null,
@@ -87,19 +89,40 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
 
   return (
     <div className="mg-answer">
-      <p className="mg-answer-title">
-        {answer.title} <span className="mg-answer-year">({answer.year})</span>
-      </p>
-      {facts.length > 0 && (
-        <dl className="mg-answer-facts">
-          {facts.map((f) => (
-            <div key={f.k} className="mg-answer-fact">
-              <dt>{f.k}</dt>
-              <dd>{f.v}</dd>
+      <div className="mg-answer-layout">
+        {answer.poster_url && !imgFailed ? (
+          <div className="mg-answer-poster-frame">
+            <img
+              src={answer.poster_url}
+              alt={answer.title}
+              className="mg-answer-poster"
+              onError={() => setImgFailed(true)}
+            />
+          </div>
+        ) : (
+          <div className="mg-answer-poster-frame mg-poster-fallback-frame" aria-hidden="true">
+            <div className="mg-poster-placeholder">
+              <span className="mg-poster-icon">🎬</span>
+              <span className="mg-poster-fallback-text">{answer.year}</span>
             </div>
-          ))}
-        </dl>
-      )}
+          </div>
+        )}
+        <div className="mg-answer-content">
+          <p className="mg-answer-title">
+            {answer.title} <span className="mg-answer-year">({answer.year})</span>
+          </p>
+          {facts.length > 0 && (
+            <dl className="mg-answer-facts">
+              {facts.map((f) => (
+                <div key={f.k} className="mg-answer-fact">
+                  <dt>{f.k}</dt>
+                  <dd>{f.v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -111,6 +134,10 @@ export function WordGoblinGame() {
   const [dayState, setDayState] = useState<DayState | null>(null);
   const [loading, setLoading] = useState(true);
   const [serverError, setServerError] = useState<string | null>(null);
+
+  // Case File visibility
+  const [caseFileVisible, setCaseFileVisible] = useState(true);
+  const [copiedShare, setCopiedShare] = useState(false);
 
   // Combobox state: supports all 6,154 catalog movies (from 1 character) + attributes (Director, Actor, Year, Genre, Language)
   const [query, setQuery] = useState("");
@@ -159,6 +186,8 @@ export function WordGoblinGame() {
         }
       }
       setDayState(state);
+      // Keep Case File hidden at start unless player previously opened it today
+      setCaseFileVisible(Boolean(state.caseFileOpened));
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unable to reach the game server.";
       setServerError(msg);
@@ -240,6 +269,22 @@ export function WordGoblinGame() {
   const guessedLabels = new Set(guesses.map((g) => g.matchedTitle ?? g.guess));
   const bestSimilarity = guesses.reduce((m, g) => (g.isCorrect ? m : Math.max(m, g.similarity)), -1);
 
+  const isCaseFileHidden = !caseFileVisible;
+  const scoreBreakdown = dayState
+    ? computeGameScore(dayState, isCaseFileHidden)
+    : {
+        total: 1500,
+        baseScore: 500,
+        efficiencyBonus: 500,
+        noCaseFileBonus: 300,
+        noClueBonus: 200,
+        rank: "S+" as const,
+        rankTitle: "APEX ORACLE",
+        usedCaseFile: false,
+        cluesUsed: 0,
+        guessCount: 0,
+      };
+
   const combinedOptions: ComboOption[] = [
     ...suggestions.map((movie): ComboOption => ({ type: "movie", movie })),
     ...attrSuggestions.map((attr): ComboOption => ({ type: "attribute", attr })),
@@ -253,6 +298,56 @@ export function WordGoblinGame() {
   function triggerPulse() {
     setPulse(true);
     setTimeout(() => setPulse(false), 280);
+  }
+
+  // ── Toggle / Reveal / Hide Case File ───────────────────────────────────────
+  function handleToggleCaseFile() {
+    setMenuOpen(false);
+    if (!caseFileVisible) {
+      setCaseFileVisible(true);
+      if (dayState && !isGameOver && !dayState.caseFileOpened) {
+        const updated: DayState = { ...dayState, caseFileOpened: true };
+        setDayState(updated);
+        saveDayState(updated);
+      }
+    } else {
+      setCaseFileVisible(false);
+    }
+  }
+
+  function handleHideCaseFileOption() {
+    setMenuOpen(false);
+    setCaseFileVisible(false);
+    if (dayState && !isGameOver) {
+      const updated: DayState = { ...dayState, caseFileOpened: false };
+      setDayState(updated);
+      saveDayState(updated);
+      setStatusMessage("🔒 Case File Hidden! +300 Point Bonus active for solving without clues.");
+      setIsWarning(false);
+    }
+  }
+
+  // ── Share Score Report ─────────────────────────────────────────────────────
+  async function handleShareScore() {
+    if (!dayState) return;
+    const dateLabel = dailyGame ? dailyGame.date : dayState.date;
+    const pureTag = !scoreBreakdown.usedCaseFile ? "🔒 PURE MODE (No Case File!)" : "📁 Case File Used";
+    const text = [
+      `🎬 MOVIEGOBLIN // ${dateLabel}`,
+      dayState.solved
+        ? `🏆 SCORE: ${scoreBreakdown.total} PTS [RANK ${scoreBreakdown.rank} · ${scoreBreakdown.rankTitle}]`
+        : `💀 SIGNAL LOST (0 PTS)`,
+      `🎯 ${guesses.length} ${guesses.length === 1 ? "Guess" : "Guesses"} · ${pureTag} · ${clues.length} ${clues.length === 1 ? "Clue" : "Clues"}`,
+      `https://movie-goblin.vercel.app`,
+    ].join("\n");
+
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedShare(true);
+      setTimeout(() => setCopiedShare(false), 2400);
+    } catch {
+      // ignore clipboard errors
+    }
   }
 
   // ── Suggestion picking ─────────────────────────────────────────────────────
@@ -282,9 +377,11 @@ export function WordGoblinGame() {
       const newState: DayState = {
         ...dayState,
         attributeChecks: updatedChecks,
+        caseFileOpened: true,
       };
       setDayState(newState);
       saveDayState(newState);
+      setCaseFileVisible(true);
       triggerPulse();
       setStatusMessage(checkResult.message);
       setIsWarning(!checkResult.matched && attr.kind !== "year");
@@ -347,12 +444,15 @@ export function WordGoblinGame() {
         return;
       }
 
+      const poster = response.poster_url || choice.poster_url;
+
       const result: GuessResult = {
         guess: response.matchedTitle || choice.label,
         similarity: response.similarity,
         similarityLabel: response.similarityLabel,
         isCorrect: response.isCorrect,
         matchedTitle: response.matchedTitle,
+        poster_url: poster,
         hints: response.hints,
       };
 
@@ -369,8 +469,13 @@ export function WordGoblinGame() {
       triggerPulse();
 
       if (solved) {
-        recordWin(dayState.date);
-        setStatusMessage("Brilliant! You named the movie.");
+        const finalScore = computeGameScore(newState);
+        recordWin(dayState.date, finalScore.total, !finalScore.usedCaseFile);
+        setStatusMessage(
+          !finalScore.usedCaseFile
+            ? `PURE DETECTIVE SOLVE! +${finalScore.total} PTS (Rank ${finalScore.rank})`
+            : `Brilliant! You named the movie (+${finalScore.total} PTS).`
+        );
       }
 
       setQuery("");
@@ -462,475 +567,636 @@ export function WordGoblinGame() {
     Boolean(caseFile.language),
   ].filter(Boolean).length;
 
+  const isPureModeActive = !scoreBreakdown.usedCaseFile;
+
   return (
     <div className="mg-container">
       <main className="mg-main">
-        {/* Authentic Barrel-Curved Orange Console Screen Set Into Pure Pitch Black */}
+        {/* Physical Curved Black Bezel Framing the CRT Display */}
         <div className="mg-console-frame">
           <div className={pulse ? "mg-screen mg-screen-pulse" : "mg-screen"}>
-            {/* ── Nokia / Retro Console Top Status Bar (Signal + Mail + Brand | Streak | Date + Battery) ── */}
-            <header className="mg-screen-topbar">
-              <div className="mg-status-left">
-                <svg
-                  className="mg-pixel-svg"
-                  width="26"
-                  height="16"
-                  viewBox="0 0 26 16"
-                  aria-hidden="true"
-                >
-                  {/* Antenna + 4 ascending signal bars */}
-                  <path
-                    fill="currentColor"
-                    d="M1 1h7v2H6v2H5v10H3V5H2V3H1V1zm7 10h3v4H8v-4zm5-3h3v7h-3V8zm5-3h3v10h-3V5zm5-4h3v14h-3V1z"
-                  />
-                </svg>
-                <svg
-                  className="mg-pixel-svg"
-                  width="20"
-                  height="14"
-                  viewBox="0 0 20 14"
-                  aria-hidden="true"
-                >
-                  {/* Pixel envelope / dossier icon */}
-                  <path
-                    fill="currentColor"
-                    d="M0 0h20v14H0V0zm2 2v2h2v2h2v2h4v2h0V8h4V6h2V4h2V2H2zm0 4v6h16V6h-2v2h-2v2H6V8H4V6H2z"
-                  />
-                </svg>
-                <span className="mg-logo-text">MovieGoblin</span>
-              </div>
-
-              {/* Creative Interactive Streak Pill Button in Top Console Bar */}
-              <button
-                type="button"
-                className="mg-streak-pill"
-                onClick={() => setShowStats(true)}
-                title="View Career Stats & Streak"
-              >
-                <span className="mg-streak-bars" aria-hidden="true">
-                  <i className={stats.currentStreak >= 1 ? "is-lit" : ""} />
-                  <i className={stats.currentStreak >= 3 ? "is-lit" : ""} />
-                  <i className={stats.currentStreak >= 7 ? "is-lit" : ""} />
-                </span>
-                <span className="mg-streak-text">
-                  STREAK: {stats.currentStreak}D · {stats.won} WON
-                </span>
-              </button>
-
-              <div className="mg-status-right">
-                <span className="mg-date-badge">
-                  {dailyGame ? formatPuzzleDate(dailyGame.date) : "TODAY"}
-                </span>
-                <svg
-                  className="mg-pixel-svg"
-                  width="28"
-                  height="14"
-                  viewBox="0 0 28 14"
-                  aria-hidden="true"
-                >
-                  {/* 4-bar pixel battery icon matching reference image */}
-                  <path
-                    fill="currentColor"
-                    d="M0 1h25v3h3v6h-3v3H0V1zm2 2v8h21V3H2zm2 1.5h4v5H4v-5zm5 0h4v5H9v-5zm5 0h4v5h-4v-5zm5 0h3v5h-3v-5z"
-                  />
-                </svg>
-              </div>
-            </header>
-
-            {/* ── Top Hero Zone: Quote on Top + Primary Search Command Bar ── */}
-            <div className="mg-top-command">
-              <div className="mg-hero">
-                <h1 className="mg-heading">
-                  You know the movie. You just don&apos;t know it yet.
-                  <span className="mg-cursor" aria-hidden="true" />
-                </h1>
-              </div>
-
-              {/* Server Error */}
-              {serverError && (
-                <div className="mg-banner mg-banner-error" role="alert">
-                  <p className="mg-banner-title">Signal lost</p>
-                  <p className="mg-banner-desc">{serverError}</p>
-                  <button className="mg-btn-retry" onClick={() => void fetchDailyPuzzle()} type="button">
-                    Retry
-                  </button>
-                </div>
-              )}
-
-              {/* Solved */}
-              {!serverError && dayState?.solved && (
-                <div className="mg-banner mg-banner-win" role="status">
-                  <div className="mg-banner-body">
-                    <p className="mg-banner-title">
-                      Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}
-                    </p>
-                    {dayState.revealedAnswer && <AnswerCard answer={dayState.revealedAnswer} />}
-                  </div>
-                </div>
-              )}
-
-              {/* Gave up: answer revealed */}
-              {!serverError && dayState?.surrendered && !dayState.solved && (
-                <div className="mg-banner mg-banner-neutral" role="status">
-                  <div className="mg-banner-body">
-                    <p className="mg-banner-title">The answer was</p>
-                    {dayState.revealedAnswer ? (
-                      <AnswerCard answer={dayState.revealedAnswer} />
-                    ) : (
-                      <p className="mg-banner-desc">You gave up today. Come back tomorrow for a new film.</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Search combobox: movies (from 1st letter) + Director / Actor / Year / Genre / Language */}
-              {!isGameOver && (
-                <form className="mg-search-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
-                  <div className="mg-search-bar">
-                    <div className="mg-combobox" ref={comboRef}>
-                      <input
-                        ref={inputRef}
-                        className="mg-input"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellCheck={false}
-                        disabled={!canGuess && !submitting}
-                        onChange={(e) => handleInputChange(e.target.value)}
-                        onFocus={() => setListOpen(true)}
-                        onKeyDown={handleInputKeyDown}
-                        placeholder={
-                          loading ? "Tuning in..." : "Search movie, director, actor, year, genre, language..."
-                        }
-                        value={query}
-                        aria-label="Movie guess"
-                        role="combobox"
-                        aria-expanded={listOpen && combinedOptions.length > 0}
-                        aria-controls={listboxId}
-                        aria-autocomplete="list"
-                        aria-activedescendant={activeIdx >= 0 ? `${listboxId}-${activeIdx}` : undefined}
-                      />
-                      {listOpen && query.trim().length >= 1 && (
-                        <ul className="mg-suggestions" id={listboxId} role="listbox">
-                          {combinedOptions.length === 0 ? (
-                            <li className="mg-suggestion-empty" role="presentation">
-                              {searching ? "Searching catalog..." : "No matching movie in catalog"}
-                            </li>
-                          ) : (
-                            combinedOptions.map((opt, i) => {
-                              if (opt.type === "movie") {
-                                const s = opt.movie;
-                                const already = guessedLabels.has(s.label);
-                                const sub = [
-                                  s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null,
-                                  s.director ?? null,
-                                  s.language ?? null,
-                                ]
-                                  .filter(Boolean)
-                                  .join(" · ");
-
-                                return (
-                                  <li
-                                    key={`movie-${s.label}`}
-                                    id={`${listboxId}-${i}`}
-                                    role="option"
-                                    aria-selected={i === activeIdx}
-                                    aria-disabled={already}
-                                    className={[
-                                      "mg-suggestion",
-                                      i === activeIdx ? "is-active" : "",
-                                      already ? "is-guessed" : "",
-                                    ]
-                                      .filter(Boolean)
-                                      .join(" ")}
-                                    onMouseDown={(e) => {
-                                      e.preventDefault();
-                                      if (pickMovieSuggestion(s)) {
-                                        void submitSelection(s);
-                                      }
-                                    }}
-                                    onMouseEnter={() => setActiveIdx(i)}
-                                  >
-                                    <div className="mg-suggestion-main">
-                                      <span className="mg-suggestion-title">{s.title}</span>
-                                      {sub && <span className="mg-suggestion-sub">{sub}</span>}
-                                    </div>
-                                    <span className="mg-suggestion-year">{already ? "guessed" : s.year}</span>
-                                  </li>
-                                );
-                              }
-
-                              const a = opt.attr;
-                              return (
-                                <li
-                                  key={`attr-${a.kind}-${a.value}`}
-                                  id={`${listboxId}-${i}`}
-                                  role="option"
-                                  aria-selected={i === activeIdx}
-                                  className={["mg-suggestion", "mg-suggestion-attr", i === activeIdx ? "is-active" : ""]
-                                    .filter(Boolean)
-                                    .join(" ")}
-                                  onMouseDown={(e) => {
-                                    e.preventDefault();
-                                    void pickAttributeSuggestion(a);
-                                  }}
-                                  onMouseEnter={() => setActiveIdx(i)}
-                                >
-                                  <div className="mg-suggestion-attr-left">
-                                    <span className="mg-badge is-found">{attrBadgeCode(a.kind)}</span>
-                                    <span className="mg-suggestion-title">{a.label}</span>
-                                  </div>
-                                  <span className="mg-suggestion-year">check</span>
-                                </li>
-                              );
-                            })
-                          )}
-                        </ul>
-                      )}
-                    </div>
-
-                    <button
-                      className="mg-btn-guess"
-                      disabled={!canGuess || (!selected && combinedOptions.length === 0)}
-                      type="submit"
+            <div className="mg-screen-inner">
+              {/* ── Retro Top Status Bar (Signal + Mail + Brand | Streak | Date + Battery) ── */}
+              <header className="mg-screen-topbar">
+                  <div className="mg-status-left">
+                    <svg
+                      className="mg-pixel-svg"
+                      width="30"
+                      height="18"
+                      viewBox="0 0 26 16"
+                      aria-hidden="true"
                     >
-                      {submitting ? "..." : "Guess"}
-                    </button>
-
-                    {/* Three-dot options menu: Clue and Give Up */}
-                    <div className="mg-menu-anchor" ref={menuRef}>
-                      <button
-                        className="mg-btn-dots"
-                        onClick={() => setMenuOpen((o) => !o)}
-                        type="button"
-                        aria-label="Options"
-                        aria-expanded={menuOpen}
-                        aria-haspopup="menu"
-                      >
-                        •••
-                      </button>
-                      {menuOpen && (
-                        <div className="mg-dropdown-menu" role="menu">
-                          <button
-                            className="mg-dropdown-item"
-                            onClick={() => void handleClue()}
-                            type="button"
-                            role="menuitem"
-                            disabled={clueLoading}
-                          >
-                            Clue{clues.length > 0 ? ` (${clues.length} used)` : ""}
-                          </button>
-                          <button
-                            className="mg-dropdown-item mg-dropdown-danger"
-                            onClick={handleGiveUpClick}
-                            type="button"
-                            role="menuitem"
-                          >
-                            Give Up
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                      <path
+                        fill="currentColor"
+                        d="M1 1h7v2H6v2H5v10H3V5H2V3H1V1zm7 10h3v4H8v-4zm5-3h3v7h-3V8zm5-3h3v10h-3V5zm5-4h3v14h-3V1z"
+                      />
+                    </svg>
+                    <svg
+                      className="mg-pixel-svg"
+                      width="24"
+                      height="16"
+                      viewBox="0 0 20 14"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M0 0h20v14H0V0zm2 2v2h2v2h2v2h4v2h0V8h4V6h2V4h2V2H2zm0 4v6h16V6h-2v2h-2v2H6V8H4V6H2z"
+                      />
+                    </svg>
+                    <span className="mg-logo-text">MovieGoblin</span>
                   </div>
 
-                  {statusMessage && (
-                    <p className={isWarning ? "mg-status-msg mg-status-warn" : "mg-status-msg"} aria-live="polite">
-                      {statusMessage}
-                    </p>
-                  )}
-                </form>
-              )}
-            </div>
-
-            {/* ── Main 2-Column Console Workspace (Zero Wasted Space, No Endless Page Scroll) ── */}
-            {!serverError && (
-              <div className="mg-workspace-grid">
-                {/* LEFT COLUMN: Case File Dossier + Progressive Clues */}
-                <div className="mg-col-dossier">
-                  <section className="mg-casefile" aria-label="Case file">
-                    <div className="mg-panel-head">
-                      <h2 className="mg-casefile-title">Case file</h2>
-                      <span className="mg-panel-counter">{unlockedCaseCount}/5 UNLOCKED</span>
-                    </div>
-                    <div className="mg-case-row">
-                      <span className={caseFile.director ? "mg-badge mg-badge-d is-found" : "mg-badge mg-badge-d"}>
-                        D
-                      </span>
-                      <span className="mg-case-label">Director</span>
-                      <span className={caseFile.director ? "mg-case-val" : "mg-case-val is-unknown"}>
-                        {caseFile.director ?? "???"}
-                      </span>
-                    </div>
-                    <div className="mg-case-row">
-                      <span className={caseFile.cast.length ? "mg-badge mg-badge-star is-found" : "mg-badge mg-badge-star"}>
-                        ★
-                      </span>
-                      <span className="mg-case-label">Actors</span>
-                      <span className={caseFile.cast.length ? "mg-case-val" : "mg-case-val is-unknown"}>
-                        {caseFile.cast.length ? caseFile.cast.join(", ") : "???"}
-                      </span>
-                    </div>
-                    <div className="mg-case-row">
-                      <span className={yearWindow ? "mg-badge mg-badge-year is-found" : "mg-badge mg-badge-year"}>
-                        YR
-                      </span>
-                      <span className="mg-case-label">Released</span>
-                      <span className={yearWindow ? "mg-case-val" : "mg-case-val is-unknown"}>
-                        {yearWindow ?? "???"}
-                      </span>
-                    </div>
-                    <div className="mg-case-row">
-                      <span className={caseFile.genres.length ? "mg-badge is-found" : "mg-badge"}>GN</span>
-                      <span className="mg-case-label">Genre</span>
-                      <span className={caseFile.genres.length ? "mg-case-val" : "mg-case-val is-unknown"}>
-                        {caseFile.genres.length ? caseFile.genres.join(" · ") : "???"}
-                      </span>
-                    </div>
-                    <div className="mg-case-row">
-                      <span className={caseFile.language ? "mg-badge is-found" : "mg-badge"}>LG</span>
-                      <span className="mg-case-label">Language</span>
-                      <span className={caseFile.language ? "mg-case-val" : "mg-case-val is-unknown"}>
-                        {caseFile.language ?? "???"}
-                      </span>
-                    </div>
-                  </section>
-
-                  {/* Clues revealed so far */}
-                  {clues.length > 0 && (
-                    <ol className="mg-clue-list" aria-label="Clues">
-                      {clues.map((c) => (
-                        <li key={c.n} className="mg-clue-item">
-                          <span className="mg-clue-badge">
-                            Clue {c.n}/{c.total} · {c.label}
-                          </span>
-                          <p className="mg-clue-body">{c.text}</p>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                </div>
-
-                {/* RIGHT COLUMN: Guess History Log (Numbers Only + Attribute Badges) */}
-                <section className="mg-history-section" aria-label="Guess history">
-                  <div className="mg-history-header">
-                    <span>
-                      {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}
+                  {/* Interactive Streak & Score Pill Button in Top Console Bar */}
+                  <button
+                    type="button"
+                    className="mg-streak-pill"
+                    onClick={() => setShowStats(true)}
+                    title="View Career Stats, High Score & Streak"
+                  >
+                    <span className="mg-streak-bars" aria-hidden="true">
+                      <i className={stats.currentStreak >= 1 ? "is-lit" : ""} />
+                      <i className={stats.currentStreak >= 3 ? "is-lit" : ""} />
+                      <i className={stats.currentStreak >= 7 ? "is-lit" : ""} />
                     </span>
-                    <span>Match %</span>
+                    <span className="mg-streak-text">
+                      STREAK: {stats.currentStreak}D · {stats.won} WON
+                    </span>
+                  </button>
+
+                  <div className="mg-status-right">
+                    <span className="mg-date-badge">
+                      {dailyGame ? formatPuzzleDate(dailyGame.date) : "TODAY"}
+                    </span>
+                    <svg
+                      className="mg-pixel-svg"
+                      width="32"
+                      height="16"
+                      viewBox="0 0 28 14"
+                      aria-hidden="true"
+                    >
+                      <path
+                        fill="currentColor"
+                        d="M0 1h25v3h3v6h-3v3H0V1zm2 2v8h21V3H2zm2 1.5h4v5H4v-5zm5 0h4v5H9v-5zm5 0h4v5h-4v-5zm5 0h3v5h-3v-5z"
+                      />
+                    </svg>
+                  </div>
+                </header>
+
+                {/* ── Top Hero Zone: Quote on Top + Primary Search Command Bar ── */}
+                <div className="mg-top-command">
+                  <div className="mg-hero">
+                    <h1 className="mg-heading">
+                      You know the movie. You just don&apos;t know it yet.
+                      <span className="mg-cursor" aria-hidden="true" />
+                    </h1>
                   </div>
 
-                  {guesses.length > 0 ? (
-                    <div className="mg-history-list">
-                      {[...guesses].reverse().map((item, revIdx) => {
-                        const originalIndex = guesses.length - revIdx;
-                        const h = item.hints;
-                        const filled = Math.round((item.similarity / 100) * SCORE_SEGMENTS);
-                        const isBest = !item.isCorrect && item.similarity === bestSimilarity && bestSimilarity >= 0;
-                        return (
-                          <div
-                            key={`guess-${originalIndex}-${item.guess}`}
-                            className={`mg-guess-item ${item.isCorrect ? "mg-guess-item-correct" : ""}`}
-                          >
-                            <div className="mg-guess-main">
-                              <div className="mg-guess-left">
-                                <span className="mg-guess-index">{String(originalIndex).padStart(2, "0")}</span>
-                                <span className="mg-guess-title" title={item.matchedTitle || item.guess}>
-                                  {item.matchedTitle || item.guess}
-                                </span>
-                                {isBest && <span className="mg-best-tag">Best</span>}
+                  {/* Server Error */}
+                  {serverError && (
+                    <div className="mg-banner mg-banner-error" role="alert">
+                      <p className="mg-banner-title">Signal lost</p>
+                      <p className="mg-banner-desc">{serverError}</p>
+                      <button className="mg-btn-retry" onClick={() => void fetchDailyPuzzle()} type="button">
+                        Retry
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Solved — With Retro Console Point Score Breakdown */}
+                  {!serverError && dayState?.solved && (
+                    <div className="mg-banner mg-banner-win" role="status">
+                      <div className="mg-banner-body">
+                        <div className="mg-win-header">
+                          <div>
+                            <p className="mg-banner-title">
+                              Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
+                            </p>
+                            {dayState.revealedAnswer && <AnswerCard answer={dayState.revealedAnswer} />}
+                          </div>
+
+                          <div className="mg-score-card">
+                            <div className="mg-score-card-top">
+                              <span className="mg-rank-badge">RANK {scoreBreakdown.rank}</span>
+                              <span className="mg-rank-title">{scoreBreakdown.rankTitle}</span>
+                            </div>
+                            <div className="mg-score-total">{scoreBreakdown.total} PTS</div>
+                            <div className="mg-score-breakdown">
+                              <div className="mg-score-line">
+                                <span>Base Solve</span>
+                                <strong>+{scoreBreakdown.baseScore}</strong>
                               </div>
-                              <div className="mg-guess-right">
-                                <div className="mg-proximity-bar" aria-hidden="true">
-                                  {Array.from({ length: SCORE_SEGMENTS }, (_, i) => (
-                                    <span
-                                      key={i}
-                                      className={i < filled ? "mg-proximity-seg is-filled" : "mg-proximity-seg"}
-                                    />
-                                  ))}
-                                </div>
-                                <span className="mg-guess-score">{item.similarity}%</span>
+                              <div className="mg-score-line">
+                                <span>Efficiency ({guesses.length}g)</span>
+                                <strong>+{scoreBreakdown.efficiencyBonus}</strong>
+                              </div>
+                              <div className={scoreBreakdown.noCaseFileBonus > 0 ? "mg-score-line is-bonus" : "mg-score-line is-muted"}>
+                                <span>🔒 Case File Hidden Bonus</span>
+                                <strong>
+                                  {scoreBreakdown.noCaseFileBonus > 0 ? `+${scoreBreakdown.noCaseFileBonus} ★` : "+0 (Open)"}
+                                </strong>
+                              </div>
+                              <div className="mg-score-line">
+                                <span>No-Clue Bonus</span>
+                                <strong>+{scoreBreakdown.noClueBonus}</strong>
                               </div>
                             </div>
-                            {h && (
-                              <div className="mg-hints">
-                                {h.director && (
-                                  <span className="mg-badge mg-badge-d is-found" title={`Same director: ${h.director}`}>
-                                    D
-                                  </span>
-                                )}
-                                {h.cast.length > 0 && (
-                                  <span
-                                    className="mg-badge mg-badge-star is-found"
-                                    title={`Shared actors: ${h.cast.join(", ")}`}
-                                  >
-                                    ★{h.cast.length > 1 ? h.cast.length : ""}
-                                  </span>
-                                )}
-                                {h.language && (
-                                  <span className="mg-badge is-found" title={`Same language: ${h.language}`}>
-                                    {h.language.slice(0, 3).toUpperCase()}
-                                  </span>
-                                )}
-                                {(() => {
-                                  const y = yearBadge(h.year.relation, h.year.value);
-                                  return (
-                                    <span
-                                      className={
-                                        h.year.relation === "same" || h.year.within5
-                                          ? "mg-badge mg-badge-year is-found"
-                                          : "mg-badge mg-badge-year"
-                                      }
-                                      title={y.title}
-                                    >
-                                      {y.symbol} {h.year.value}
-                                    </span>
-                                  );
-                                })()}
-                              </div>
-                            )}
+                            <button
+                              type="button"
+                              className="mg-btn-share"
+                              onClick={() => void handleShareScore()}
+                            >
+                              {copiedShare ? "✓ COPIED SCORE" : "SHARE SCORE REPORT"}
+                            </button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="mg-empty-state">
-                      <p className="mg-empty-headline">One mystery. Unlimited guesses.</p>
-                      <p className="mg-empty-sub">
-                        Guess any movie title for a 0–99% match score, or test a Director (D), Actor (★), Year (YR), Genre (GN), or Language (LG) directly.
-                      </p>
+                        </div>
+                      </div>
                     </div>
                   )}
-                </section>
+
+                  {/* Gave up: answer revealed */}
+                  {!serverError && dayState?.surrendered && !dayState.solved && (
+                    <div className="mg-banner mg-banner-neutral" role="status">
+                      <div className="mg-banner-body">
+                        <div className="mg-win-header">
+                          <div>
+                            <p className="mg-banner-title">The answer was</p>
+                            {dayState.revealedAnswer ? (
+                              <AnswerCard answer={dayState.revealedAnswer} />
+                            ) : (
+                              <p className="mg-banner-desc">You gave up today. Come back tomorrow for a new film.</p>
+                            )}
+                          </div>
+                          <div className="mg-score-card is-surrendered">
+                            <div className="mg-score-card-top">
+                              <span className="mg-rank-badge">RANK F</span>
+                              <span className="mg-rank-title">SIGNAL LOST</span>
+                            </div>
+                            <div className="mg-score-total">0 PTS</div>
+                            <p className="mg-score-note">
+                              Solve tomorrow&apos;s film without opening the Case File for +300 bonus points!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Search combobox: movies (from 1st letter) + Director / Actor / Year / Genre / Language */}
+                  {!isGameOver && (
+                    <form className="mg-search-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
+                      <div className="mg-search-bar">
+                        <div className="mg-combobox" ref={comboRef}>
+                          <input
+                            ref={inputRef}
+                            className="mg-input"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            disabled={!canGuess && !submitting}
+                            onChange={(e) => handleInputChange(e.target.value)}
+                            onFocus={() => setListOpen(true)}
+                            onKeyDown={handleInputKeyDown}
+                            placeholder={
+                              loading ? "Tuning in..." : "Search movie, director, actor, year, genre, language..."
+                            }
+                            value={query}
+                            aria-label="Movie guess"
+                            role="combobox"
+                            aria-expanded={listOpen && combinedOptions.length > 0}
+                            aria-controls={listboxId}
+                            aria-autocomplete="list"
+                            aria-activedescendant={activeIdx >= 0 ? `${listboxId}-${activeIdx}` : undefined}
+                          />
+                          {listOpen && query.trim().length >= 1 && (
+                            <ul className="mg-suggestions" id={listboxId} role="listbox">
+                              {combinedOptions.length === 0 ? (
+                                <li className="mg-suggestion-empty" role="presentation">
+                                  {searching ? "Searching catalog..." : "No matching movie in catalog"}
+                                </li>
+                              ) : (
+                                combinedOptions.map((opt, i) => {
+                                  if (opt.type === "movie") {
+                                    const s = opt.movie;
+                                    const already = guessedLabels.has(s.label);
+                                    const sub = [
+                                      s.originalTitle && s.originalTitle !== s.title ? s.originalTitle : null,
+                                      s.director ?? null,
+                                      s.language ?? null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(" · ");
+
+                                    return (
+                                      <li
+                                        key={`movie-${s.label}`}
+                                        id={`${listboxId}-${i}`}
+                                        role="option"
+                                        aria-selected={i === activeIdx}
+                                        aria-disabled={already}
+                                        className={[
+                                          "mg-suggestion",
+                                          i === activeIdx ? "is-active" : "",
+                                          already ? "is-guessed" : "",
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" ")}
+                                        onMouseDown={(e) => {
+                                          e.preventDefault();
+                                          if (pickMovieSuggestion(s)) {
+                                            void submitSelection(s);
+                                          }
+                                        }}
+                                        onMouseEnter={() => setActiveIdx(i)}
+                                      >
+                                        <div className="mg-suggestion-left-wrap">
+                                          <div className="mg-suggestion-thumb-wrap">
+                                            {s.poster_url ? (
+                                              <img
+                                                src={s.poster_url}
+                                                alt=""
+                                                className="mg-suggestion-thumb"
+                                                loading="lazy"
+                                                onError={(e) => {
+                                                  const target = e.currentTarget as HTMLElement;
+                                                  target.style.display = "none";
+                                                  const fallback = target.nextElementSibling as HTMLElement | null;
+                                                  if (fallback) fallback.style.display = "flex";
+                                                }}
+                                              />
+                                            ) : null}
+                                            <span
+                                              className="mg-suggestion-thumb-fallback"
+                                              aria-hidden="true"
+                                              style={{ display: s.poster_url ? "none" : "flex" }}
+                                            >
+                                              🎬
+                                            </span>
+                                          </div>
+                                          <div className="mg-suggestion-main">
+                                            <span className="mg-suggestion-title">{s.title}</span>
+                                            {sub && <span className="mg-suggestion-sub">{sub}</span>}
+                                          </div>
+                                        </div>
+                                        <span className="mg-suggestion-year">{already ? "guessed" : s.year}</span>
+                                      </li>
+                                    );
+                                  }
+
+                                  const a = opt.attr;
+                                  return (
+                                    <li
+                                      key={`attr-${a.kind}-${a.value}`}
+                                      id={`${listboxId}-${i}`}
+                                      role="option"
+                                      aria-selected={i === activeIdx}
+                                      className={["mg-suggestion", "mg-suggestion-attr", i === activeIdx ? "is-active" : ""]
+                                        .filter(Boolean)
+                                        .join(" ")}
+                                      onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        void pickAttributeSuggestion(a);
+                                      }}
+                                      onMouseEnter={() => setActiveIdx(i)}
+                                    >
+                                      <div className="mg-suggestion-attr-left">
+                                        <span className="mg-badge is-found">{attrBadgeCode(a.kind)}</span>
+                                        <span className="mg-suggestion-title">{a.label}</span>
+                                      </div>
+                                      <span className="mg-suggestion-year">check</span>
+                                    </li>
+                                  );
+                                })
+                              )}
+                            </ul>
+                          )}
+                        </div>
+
+                        <button
+                          className="mg-btn-guess"
+                          disabled={!canGuess || (!selected && combinedOptions.length === 0)}
+                          type="submit"
+                        >
+                          {submitting ? "..." : "Guess"}
+                        </button>
+
+                        {/* Three-dot options menu: Case File, Clue, and Give Up */}
+                        <div className="mg-menu-anchor" ref={menuRef}>
+                          <button
+                            className="mg-btn-dots"
+                            onClick={() => setMenuOpen((o) => !o)}
+                            type="button"
+                            aria-label="Options"
+                            aria-expanded={menuOpen}
+                            aria-haspopup="menu"
+                          >
+                            •••
+                          </button>
+                          {menuOpen && (
+                            <div className="mg-dropdown-menu" role="menu">
+                              <button
+                                className="mg-dropdown-item"
+                                onClick={caseFileVisible ? handleHideCaseFileOption : handleToggleCaseFile}
+                                type="button"
+                                role="menuitem"
+                              >
+                                {caseFileVisible ? "🔒 Hide Case File (+300 PTS)" : "📂 Open Case File"}
+                              </button>
+                              <button
+                                className="mg-dropdown-item"
+                                onClick={() => void handleClue()}
+                                type="button"
+                                role="menuitem"
+                                disabled={clueLoading}
+                              >
+                                Clue{clues.length > 0 ? ` (${clues.length} used)` : ""}
+                              </button>
+                              <button
+                                className="mg-dropdown-item mg-dropdown-danger"
+                                onClick={handleGiveUpClick}
+                                type="button"
+                                role="menuitem"
+                              >
+                                Give Up
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {statusMessage && (
+                        <p className={isWarning ? "mg-status-msg mg-status-warn" : "mg-status-msg"} aria-live="polite">
+                          {statusMessage}
+                        </p>
+                      )}
+                    </form>
+                  )}
+                </div>
+
+                {/* ── Main Console Workspace (Case File Dossier On-Demand + Guess History Log) ── */}
+                {!serverError && (
+                  <div className={caseFileVisible ? "mg-workspace-grid is-dossier-open" : "mg-workspace-grid is-dossier-closed"}>
+                    {/* LEFT / TOP DOSSIER COLUMN: Hidden by default until player clicks Case File heading */}
+                    <div className="mg-col-dossier">
+                      <section className={caseFileVisible ? "mg-casefile is-open" : "mg-casefile is-sealed"} aria-label="Case file">
+                        <button
+                          type="button"
+                          className="mg-casefile-toggle"
+                          onClick={handleToggleCaseFile}
+                          aria-expanded={caseFileVisible}
+                        >
+                          <div className="mg-casefile-toggle-left">
+                            <span className="mg-casefile-icon" aria-hidden="true">
+                              {caseFileVisible ? "📂" : "📁"}
+                            </span>
+                            <h2 className="mg-casefile-title">Case File</h2>
+                            {!caseFileVisible ? (
+                              <span className="mg-pure-pill">🔒 HIDDEN (+300 PTS BONUS)</span>
+                            ) : (
+                              <span className="mg-pure-pill mg-pure-pill-open">OPEN · CLICK TO HIDE</span>
+                            )}
+                          </div>
+                          <div className="mg-casefile-toggle-right">
+                            <span className="mg-panel-counter">
+                              {caseFileVisible
+                                ? `${unlockedCaseCount}/5 UNLOCKED · HIDE ▲`
+                                : `HIDDEN · OPEN ▼`}
+                            </span>
+                          </div>
+                        </button>
+
+                        {!caseFileVisible ? (
+                          <div className="mg-casefile-sealed-body">
+                            <p className="mg-sealed-text">
+                              <strong>Case File Hidden (Pure Mode Active).</strong> Clues for Director, Cast, Year, Genre &amp; Language are hidden. Solve while keeping the Case File hidden to earn an extra <strong>+300 Points</strong>!
+                            </p>
+                            <button
+                              type="button"
+                              className="mg-btn-unseal"
+                              onClick={handleToggleCaseFile}
+                            >
+                              📂 Reveal Case File Clues
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="mg-casefile-rows">
+                            <div className="mg-casefile-open-bar">
+                              <span className="mg-casefile-hint">Clues Revealed · Standard Points</span>
+                              <button
+                                type="button"
+                                className="mg-btn-rehide"
+                                onClick={handleHideCaseFileOption}
+                              >
+                                🔒 Hide Case File (+300 PTS Bonus)
+                              </button>
+                            </div>
+                            <div className="mg-case-row">
+                              <span className={caseFile.director ? "mg-badge mg-badge-d is-found" : "mg-badge mg-badge-d"}>
+                                D
+                              </span>
+                              <span className="mg-case-label">Director</span>
+                              <span className={caseFile.director ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                {caseFile.director ?? "???"}
+                              </span>
+                            </div>
+                            <div className="mg-case-row">
+                              <span className={caseFile.cast.length ? "mg-badge mg-badge-star is-found" : "mg-badge mg-badge-star"}>
+                                ★
+                              </span>
+                              <span className="mg-case-label">Actors</span>
+                              <span className={caseFile.cast.length ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                {caseFile.cast.length ? caseFile.cast.join(", ") : "???"}
+                              </span>
+                            </div>
+                            <div className="mg-case-row">
+                              <span className={yearWindow ? "mg-badge mg-badge-year is-found" : "mg-badge mg-badge-year"}>
+                                YR
+                              </span>
+                              <span className="mg-case-label">Released</span>
+                              <span className={yearWindow ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                {yearWindow ?? "???"}
+                              </span>
+                            </div>
+                            <div className="mg-case-row">
+                              <span className={caseFile.genres.length ? "mg-badge is-found" : "mg-badge"}>GN</span>
+                              <span className="mg-case-label">Genre</span>
+                              <span className={caseFile.genres.length ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                {caseFile.genres.length ? caseFile.genres.join(" · ") : "???"}
+                              </span>
+                            </div>
+                            <div className="mg-case-row">
+                              <span className={caseFile.language ? "mg-badge is-found" : "mg-badge"}>LG</span>
+                              <span className="mg-case-label">Language</span>
+                              <span className={caseFile.language ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                {caseFile.language ?? "???"}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </section>
+
+                      {/* Clues revealed so far */}
+                      {clues.length > 0 && (
+                        <ol className="mg-clue-list" aria-label="Clues">
+                          {clues.map((c) => (
+                            <li key={c.n} className="mg-clue-item">
+                              <span className="mg-clue-badge">
+                                Clue {c.n}/{c.total} · {c.label}
+                              </span>
+                              <p className="mg-clue-body">{c.text}</p>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+
+                    {/* RIGHT COLUMN: Guess History Log */}
+                    <section className="mg-history-section" aria-label="Guess history">
+                      <div className="mg-history-header">
+                        <span>
+                          {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}
+                        </span>
+                        <span>Match %</span>
+                      </div>
+
+                      {guesses.length > 0 ? (
+                        <div className="mg-history-list">
+                          {[...guesses].reverse().map((item, revIdx) => {
+                            const originalIndex = guesses.length - revIdx;
+                            const h = item.hints;
+                            const filled = Math.round((item.similarity / 100) * SCORE_SEGMENTS);
+                            const isBest = !item.isCorrect && item.similarity === bestSimilarity && bestSimilarity >= 0;
+                            return (
+                              <div
+                                key={`guess-${originalIndex}-${item.guess}`}
+                                className={`mg-guess-item ${item.isCorrect ? "mg-guess-item-correct" : ""}`}
+                              >
+                                <div className="mg-guess-main">
+                                  <div className="mg-guess-left">
+                                    <span className="mg-guess-index">{String(originalIndex).padStart(2, "0")}</span>
+                                    <div className="mg-guess-thumb-wrap">
+                                      {item.poster_url ? (
+                                        <img
+                                          src={item.poster_url}
+                                          alt=""
+                                          className="mg-guess-thumb"
+                                          loading="lazy"
+                                          onError={(e) => {
+                                            const target = e.currentTarget as HTMLElement;
+                                            target.style.display = "none";
+                                            const fallback = target.nextElementSibling as HTMLElement | null;
+                                            if (fallback) fallback.style.display = "flex";
+                                          }}
+                                        />
+                                      ) : null}
+                                      <div
+                                        className="mg-guess-thumb-fallback"
+                                        aria-hidden="true"
+                                        style={{ display: item.poster_url ? "none" : "flex" }}
+                                      >
+                                        🎬
+                                      </div>
+                                    </div>
+                                    <span className="mg-guess-title" title={item.matchedTitle || item.guess}>
+                                      {item.matchedTitle || item.guess}
+                                    </span>
+                                    {isBest && <span className="mg-best-tag">Best</span>}
+                                  </div>
+                                  <div className="mg-guess-right">
+                                    <div className="mg-proximity-bar" aria-hidden="true">
+                                      {Array.from({ length: SCORE_SEGMENTS }, (_, i) => (
+                                        <span
+                                          key={i}
+                                          className={i < filled ? "mg-proximity-seg is-filled" : "mg-proximity-seg"}
+                                        />
+                                      ))}
+                                    </div>
+                                    <span className="mg-guess-score">{item.similarity}%</span>
+                                  </div>
+                                </div>
+                                {/* Show attribute hint badges under guess only when Case File is open or game is over */}
+                                {h && (caseFileVisible || isGameOver) && (
+                                  <div className="mg-hints">
+                                    {h.director && (
+                                      <span className="mg-badge mg-badge-d is-found" title={`Same director: ${h.director}`}>
+                                        D
+                                      </span>
+                                    )}
+                                    {h.cast.length > 0 && (
+                                      <span
+                                        className="mg-badge mg-badge-star is-found"
+                                        title={`Shared actors: ${h.cast.join(", ")}`}
+                                      >
+                                        ★{h.cast.length > 1 ? h.cast.length : ""}
+                                      </span>
+                                    )}
+                                    {h.language && (
+                                      <span className="mg-badge is-found" title={`Same language: ${h.language}`}>
+                                        {h.language.slice(0, 3).toUpperCase()}
+                                      </span>
+                                    )}
+                                    {(() => {
+                                      const y = yearBadge(h.year.relation, h.year.value);
+                                      return (
+                                        <span
+                                          className={
+                                            h.year.relation === "same" || h.year.within5
+                                              ? "mg-badge mg-badge-year is-found"
+                                              : "mg-badge mg-badge-year"
+                                          }
+                                          title={y.title}
+                                        >
+                                          {y.symbol} {h.year.value}
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="mg-empty-state">
+                          <p className="mg-empty-headline">One mystery. Unlimited guesses.</p>
+                          <p className="mg-empty-sub">
+                            Guess any movie title for a 0–99% match score. Keep the <strong>Case File</strong> hidden to earn the <strong>+300 PT Pure Detective Bonus</strong>, or open it anytime to inspect shared credits!
+                          </p>
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                )}
+
+                {/* ── Bottom Console Softkey Bar ── */}
+                <footer className="mg-softkey-bar">
+                  <button className="mg-softkey-btn" onClick={() => setShowHowToPlay(true)} type="button">
+                    How to Play
+                  </button>
+                  <button className="mg-softkey-center" onClick={() => setShowStats(true)} type="button">
+                    {stats.currentStreak}D Streak · {stats.won} Solved
+                  </button>
+                  <button
+                    className="mg-softkey-btn"
+                    onClick={() => (!isGameOver ? void handleClue() : setShowStats(true))}
+                    disabled={!isGameOver && clueLoading}
+                    type="button"
+                  >
+                    {!isGameOver ? `Clue${clues.length ? ` (${clues.length})` : ""}` : "Stats"}
+                  </button>
+                </footer>
               </div>
-            )}
-
-            {/* ── Bottom Console Softkey Bar (Directly Inspired by Reference Image: Menu | Brand/Streak | Back) ── */}
-            <footer className="mg-softkey-bar">
-              <button className="mg-softkey-btn" onClick={() => setShowHowToPlay(true)} type="button">
-                How to Play
-              </button>
-              <button className="mg-softkey-center" onClick={() => setShowStats(true)} type="button">
-                {stats.currentStreak}D Streak · {stats.won} Solved
-              </button>
-              <button
-                className="mg-softkey-btn"
-                onClick={() => (!isGameOver ? void handleClue() : setShowStats(true))}
-                disabled={!isGameOver && clueLoading}
-                type="button"
-              >
-                {!isGameOver ? `Clue${clues.length ? ` (${clues.length})` : ""}` : "Stats"}
-              </button>
-            </footer>
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      {/* ── Improved How to Play Instruction Panel ── */}
+      {/* ── Comprehensive Operator Manual (How to Play Modal) ── */}
       {showHowToPlay && (
         <div className="mg-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="how-title">
           <div className="mg-modal-card mg-modal-howto">
             <button className="mg-modal-close" onClick={() => setShowHowToPlay(false)} type="button" aria-label="Close">
               ✕
             </button>
+            <div className="mg-modal-kicker">MG-84 OPERATOR&apos;S MANUAL</div>
             <h2 id="how-title" className="mg-modal-heading">How to Play MovieGoblin</h2>
 
             <div className="mg-modal-content">
@@ -938,40 +1204,102 @@ export function WordGoblinGame() {
                 <div className="mg-howto-step">
                   <span className="mg-step-num">01</span>
                   <div>
-                    <strong>Search Movies or Clues</strong>
-                    <p>Type any movie title (from 1 letter) or test a Director, Actor, Release Year, Genre, or Language from the dropdown.</p>
+                    <strong>Make a Guess &amp; Daily Movie Selection</strong>
+                    <p>
+                      Type any movie title (starting from 1 letter) to guess. MovieGoblin features a curated, unpredictable rotation of English &amp; World Cinema masterpieces alongside iconic Tollywood (Telugu) blockbusters &amp; classics. Our intelligent daily algorithm guarantees <strong>no movie or director ever repeats from today to tomorrow</strong>!
+                    </p>
                   </div>
                 </div>
+
+                <div className="mg-howto-step mg-howto-step-highlight">
+                  <span className="mg-step-num">★</span>
+                  <div>
+                    <strong>Option: Hide Case File for Extra Points (+300 PTS)</strong>
+                    <p>
+                      Want to make your deduction more challenging and score more points? Use the <strong>Hide Case File</strong> option!
+                      If you deduce and solve today&apos;s film while keeping the Case File hidden (without viewing Director, Cast, Year, Genre, or Language clues), an extra <strong>+300 BONUS POINTS</strong> are added to your final score card!
+                      Prefer clues? You can open the Case File anytime, or re-hide it to re-lock the +300 bonus.
+                    </p>
+                  </div>
+                </div>
+
                 <div className="mg-howto-step">
                   <span className="mg-step-num">02</span>
                   <div>
-                    <strong>Read the Match % (0–99%)</strong>
-                    <p>Every movie guess is scored across 8 dimensions: plot themes, keywords, genre, era, director, cast, language, and franchise. 100% wins!</p>
+                    <strong>Match % Proximity &amp; Warmth</strong>
+                    <p>
+                      Every guess returns a calibrated <strong>0%–99% Match Score</strong> measuring semantic similarity across plot themes, genre, release era, director, cast, language, and franchise. Reach <strong>100%</strong> to win!
+                    </p>
                   </div>
                 </div>
+
                 <div className="mg-howto-step">
                   <span className="mg-step-num">03</span>
                   <div>
-                    <strong>Unlock the Case File</strong>
-                    <p>Shared credits automatically lock into your Case File on the left. Need help? Use <strong>Clue</strong> or <strong>•••</strong> at any time.</p>
+                    <strong>Direct Attribute Verification</strong>
+                    <p>
+                      Want to test a hunch? Type any <strong>Director</strong>, <strong>Actor</strong>, <strong>Release Year</strong>, <strong>Genre</strong>, or <strong>Language</strong> into the search box and click <strong>check</strong> to immediately confirm if it belongs to today&apos;s film (this automatically opens your Case File).
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mg-howto-step">
+                  <span className="mg-step-num">04</span>
+                  <div>
+                    <strong>Progressive Clue Ladder</strong>
+                    <p>
+                      Need an extra nudge? Press <strong>Clue</strong> at the bottom-right to unlock up to 6 progressive hints: <em>Genre → Decade Era → Language/Runtime → Director Initials → Lead Actor&apos;s First Name → Masked Plot → Exact Release Year</em>.
+                    </p>
                   </div>
                 </div>
               </div>
 
+              {/* Point Scoring & Rank Breakdown */}
+              <div className="mg-scoring-guide">
+                <div className="mg-legend-title">Console Point Scoring (Up to 1,500 PTS)</div>
+                <div className="mg-scoring-grid">
+                  <div className="mg-scoring-item">
+                    <span className="mg-scoring-pts">+500 PTS</span>
+                    <span className="mg-scoring-desc"><strong>Base Solve</strong> — Awarded for naming today&apos;s movie</span>
+                  </div>
+                  <div className="mg-scoring-item">
+                    <span className="mg-scoring-pts">+500 PTS</span>
+                    <span className="mg-scoring-desc"><strong>Guess Efficiency</strong> — -45 pts per extra guess (min +100)</span>
+                  </div>
+                  <div className="mg-scoring-item is-highlight">
+                    <span className="mg-scoring-pts">+300 PTS</span>
+                    <span className="mg-scoring-desc"><strong>Case File Hidden Bonus</strong> — Solve with Case File hidden!</span>
+                  </div>
+                  <div className="mg-scoring-item">
+                    <span className="mg-scoring-pts">+200 PTS</span>
+                    <span className="mg-scoring-desc"><strong>No Clues Bonus</strong> — -50 pts per progressive Clue used</span>
+                  </div>
+                </div>
+                <div className="mg-ranks-bar">
+                  <span>RANKS:</span>
+                  <strong>S+ (1350+)</strong>
+                  <strong>S (1150+)</strong>
+                  <strong>A (950+)</strong>
+                  <strong>B (750+)</strong>
+                  <strong>C (&lt;750)</strong>
+                </div>
+              </div>
+
+              {/* Case File Badge Decoder */}
               <div className="mg-legend">
                 <div className="mg-legend-title">Case File Badge Decoder</div>
                 <div className="mg-legend-grid">
                   <div className="mg-legend-row">
                     <span className="mg-badge mg-badge-d is-found">D</span>
-                    <span><strong>Director</strong> confirmed</span>
+                    <span><strong>Director</strong> confirmed match</span>
                   </div>
                   <div className="mg-legend-row">
-                    <span className="mg-badge mg-badge-star is-found">★</span>
-                    <span>Shared <strong>Actor</strong> in cast</span>
+                    <span className="mg-badge mg-badge-star is-found">★2</span>
+                    <span>Shared <strong>Actors</strong> in cast</span>
                   </div>
                   <div className="mg-legend-row">
                     <span className="mg-badge mg-badge-year is-found">▲ 1994</span>
-                    <span>Released <strong>after</strong> (▼ before, = exact)</span>
+                    <span>Released <strong>after</strong> 1994 (▼ before, = exact)</span>
                   </div>
                   <div className="mg-legend-row">
                     <span className="mg-badge is-found">GN / LG</span>
@@ -984,14 +1312,15 @@ export function WordGoblinGame() {
         </div>
       )}
 
-      {/* ── Creative Streak & Career Stats Modal ── */}
+      {/* ── Career Stats, Streak & High Score Modal ── */}
       {showStats && (
         <div className="mg-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="stats-title">
           <div className="mg-modal-card">
             <button className="mg-modal-close" onClick={() => setShowStats(false)} type="button" aria-label="Close">
               ✕
             </button>
-            <h2 id="stats-title" className="mg-modal-heading">Streak &amp; Career Stats</h2>
+            <div className="mg-modal-kicker">OPERATOR RECORD</div>
+            <h2 id="stats-title" className="mg-modal-heading">Streak &amp; Career Score</h2>
 
             <div className="mg-streak-hero">
               <div className="mg-streak-hero-left">
@@ -1026,6 +1355,25 @@ export function WordGoblinGame() {
                 <span>Best Streak</span>
               </div>
             </div>
+
+            <div className="mg-stats-row mg-stats-row-secondary">
+              <div className="mg-stat-box">
+                <strong>{stats.bestScore ?? 0}</strong>
+                <span>Best Score</span>
+              </div>
+              <div className="mg-stat-box">
+                <strong>{stats.totalScore ?? 0}</strong>
+                <span>Total Points</span>
+              </div>
+              <div className="mg-stat-box">
+                <strong>{stats.pureWins ?? 0}</strong>
+                <span>Pure Wins (No Case File)</span>
+              </div>
+              <div className="mg-stat-box">
+                <strong>{dayState?.solved ? scoreBreakdown.rank : "—"}</strong>
+                <span>Today&apos;s Rank</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1036,7 +1384,7 @@ export function WordGoblinGame() {
           <div className="mg-modal-card mg-modal-small">
             <h2 id="giveup-title" className="mg-modal-heading">Give up today?</h2>
             <p className="mg-modal-text">
-              We&apos;ll reveal today&apos;s movie and end this puzzle. It counts as played and resets your streak.
+              We&apos;ll reveal today&apos;s movie and end this puzzle with 0 points. It counts as played and resets your streak.
             </p>
             <div className="mg-modal-buttons">
               <button className="mg-btn-secondary" onClick={() => setShowGiveUpConfirm(false)} type="button">

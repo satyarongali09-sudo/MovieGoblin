@@ -15,9 +15,15 @@ import {
   scoreToPercent,
   getSimilarityLabel,
   getTodayUTC,
+  selectDailyTarget,
 } from "../src/services/moviegoblin.js";
 import { createMovieGoblinRouter } from "../src/routes/moviegoblin.js";
 import { createRateLimiter } from "../src/middleware/rate-limit.js";
+import {
+  sanitize9000Csv,
+  parseCSV,
+  loadCombinedCsvDataset,
+} from "../src/services/moviegoblin-csv.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -466,6 +472,229 @@ describe("MovieGoblin Backend Core API", () => {
       assert.strictEqual(r3.status, 429);
       assert.strictEqual(r3.body.error, "Limit hit.");
       assert.ok(r3.headers["retry-after"]);
+    });
+  });
+
+  // 6. Expanded Dataset Integration, Deduplication, Poster Data Flow & Secrecy
+  describe("Expanded Dataset Integration, Poster Data Flow & Secrecy", () => {
+    test("sanitize9000Csv fixes unquoted multiline overview without dropping records", () => {
+      const brokenSnippet =
+        `2013-10-20,Pixie Hollow Bake Off,Tink challenges Gelata to see who can bake the best cake for the queen's party.  Plus 10 Disney Fairies Mini-Shorts:\n` +
+        ` - Just Desserts\n` +
+        ` - If The Hue Fits\n` +
+        ` - Magic Tricks,61.328,35,7.1,en,Animation,https://image.tmdb.org/t/p/original/6iXYe7AkQ1QIfMFuvXsSCT2zF7s.jpg\n`;
+
+      const sanitized = sanitize9000Csv(brokenSnippet);
+      const rows = parseCSV(sanitized);
+
+      assert.strictEqual(rows.length, 1, "Multiline snippet should be sanitized into exactly 1 row");
+      assert.strictEqual(rows[0].length, 9, "Sanitized row must have 9 columns");
+      assert.strictEqual(rows[0][1], "Pixie Hollow Bake Off");
+      assert.ok(rows[0][2].includes("Just Desserts"));
+      assert.strictEqual(rows[0][7], "Animation");
+    });
+
+    test("loadCombinedCsvDataset merges 9000plus.csv and yields >13,000 films", () => {
+      const dataset = loadCombinedCsvDataset();
+      assert.ok(dataset.movies.length > 13000, `Expected >13,000 movies, got ${dataset.movies.length}`);
+      assert.ok(Object.keys(dataset.metaByKey).length > 13000, "metaByKey should cover all movies");
+    });
+
+    test("preserves existing director and cast while enriching with poster_url", () => {
+      const dataset = loadCombinedCsvDataset();
+      const inception = dataset.movies.find(
+        (m) => m.normalized_title === "inception" && m.year === 2010
+      );
+      assert.ok(inception, "Inception (2010) must be present in catalog");
+
+      const meta = dataset.metaByKey["inception::2010"];
+      assert.ok(meta, "Metadata for Inception must exist");
+      assert.strictEqual(meta.director, "Christopher Nolan");
+      assert.ok(meta.cast.length > 0, "Inception must preserve cast members");
+      assert.ok(inception.poster_url || meta.poster_url, "Inception must have poster_url enriched");
+    });
+
+    test("recognizes new 2021 releases from 9000plus.csv in catalog resolution", () => {
+      const dataset = loadCombinedCsvDataset();
+      const spiderman = dataset.movies.find((m) =>
+        m.title.includes("Spider-Man: No Way Home")
+      );
+      assert.ok(spiderman, "Spider-Man: No Way Home should be present in merged catalog");
+      assert.strictEqual(spiderman.year, 2021);
+      assert.ok(spiderman.poster_url, "Spider-Man: No Way Home should have a poster URL");
+    });
+
+    test("remake disambiguation: The Batman (2022) vs Batman (1989)", () => {
+      const dataset = loadCombinedCsvDataset();
+      const batman22 = dataset.movies.find(
+        (m) => m.year === 2022 && m.title.toLowerCase().includes("batman")
+      );
+      const batman89 = dataset.movies.find(
+        (m) => m.year === 1989 && m.title.toLowerCase().includes("batman")
+      );
+
+      assert.ok(batman22, "The Batman (2022) must be in catalog");
+      assert.ok(batman89, "Batman (1989) must be in catalog");
+      assert.notStrictEqual(batman22.id, batman89.id, "Remakes must have distinct catalog IDs");
+    });
+
+    test("missing metadata safety: movie without director/cast evaluates without throwing", async () => {
+      const movieNoCredits: CatalogMovie = {
+        id: "csv-9000-test",
+        title: "Creditless Indie Film",
+        normalized_title: "creditless indie film",
+        aliases: [],
+        year: 2021,
+        genres: ["Drama"],
+        plot: "An indie film with no verified director or cast metadata available in the source CSV.",
+        embedding: new Array(384).fill(0.05),
+        is_active: true,
+      };
+
+      const customRepo = new MockMovieGoblinRepository([...sampleMovies, movieNoCredits]);
+      const customService = new MovieGoblinService(customRepo);
+
+      const result = await customService.evaluateGuess("Creditless Indie Film");
+      assert.strictEqual(result.recognized, true);
+      assert.strictEqual(result.isCorrect, false);
+      assert.strictEqual(typeof result.similarity, "number");
+      assert.ok(result.similarity >= 0 && result.similarity <= 100);
+    });
+
+    test("poster data flow: POST /guess returns poster_url for recognized candidate", async () => {
+      const movieWithPoster: CatalogMovie = {
+        id: "test-poster-movie",
+        title: "Poster Test Movie",
+        normalized_title: "poster test movie",
+        aliases: [],
+        year: 2022,
+        genres: ["Action"],
+        plot: "A test film with a poster.",
+        embedding: new Array(384).fill(0.05),
+        is_active: true,
+        poster_url: "https://image.tmdb.org/t/p/original/testposter.jpg",
+      };
+
+      const customRepo = new MockMovieGoblinRepository([...sampleMovies, movieWithPoster]);
+      const customService = new MovieGoblinService(customRepo);
+      const customRouter = createMovieGoblinRouter(customService);
+
+      const res = await invokeRouter(customRouter, {
+        method: "POST",
+        url: "/guess",
+        body: { guess: "Poster Test Movie" },
+      });
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.recognized, true);
+      assert.strictEqual(
+        res.body.poster_url,
+        "https://image.tmdb.org/t/p/original/testposter.jpg"
+      );
+    });
+
+    test("answer secrecy: incorrect guess NEVER leaks target movie's poster or title", async () => {
+      const res = await invokeRouter(router, {
+        method: "POST",
+        url: "/guess",
+        body: { guess: "Fight Club" },
+      });
+
+      assert.strictEqual(res.status, 200);
+      assert.strictEqual(res.body.recognized, true);
+
+      // If target is not Fight Club, target's poster or revealedAnswer must NOT be present
+      if (!res.body.isCorrect) {
+        assert.strictEqual(res.body.revealedAnswer, undefined);
+        const jsonStr = JSON.stringify(res.body);
+        assert.ok(!jsonStr.includes(targetMovie.title), "Target title leaked in incorrect guess");
+      }
+    });
+
+    test("selectDailyTarget invariant: candidate without director and cast is NEVER selected as daily target", () => {
+      const incompleteCandidate: CatalogMovie = {
+        id: "csv-incomplete",
+        title: "Incomplete Film",
+        normalized_title: "incomplete film",
+        aliases: [],
+        year: 2022,
+        genres: ["Drama"],
+        plot: "This film has no director or cast metadata whatsoever.",
+        embedding: new Array(384).fill(0.05),
+        is_active: true,
+      };
+
+      const pool = [...sampleMovies, incompleteCandidate];
+      const target = selectDailyTarget(pool, "2026-10-28");
+
+      assert.notStrictEqual(
+        target.id,
+        "csv-incomplete",
+        "selectDailyTarget must never select candidate lacking director/cast"
+      );
+    });
+
+    test("GET /search returns poster_url in movie suggestion results", async () => {
+      const movieWithPoster: CatalogMovie = {
+        id: "search-poster-movie",
+        title: "Searchable Poster Film",
+        normalized_title: "searchable poster film",
+        aliases: [],
+        year: 2023,
+        genres: ["Sci-Fi"],
+        plot: "A film with a valid poster URL for search.",
+        embedding: new Array(384).fill(0.05),
+        is_active: true,
+        poster_url: "https://image.tmdb.org/t/p/w500/searchable.jpg",
+      };
+
+      const customRepo = new MockMovieGoblinRepository([...sampleMovies, movieWithPoster]);
+      const customService = new MovieGoblinService(customRepo);
+      const customRouter = createMovieGoblinRouter(customService);
+
+      const res = await invokeRouter(customRouter, {
+        method: "GET",
+        url: "/search?q=Searchable",
+      });
+
+      assert.strictEqual(res.status, 200);
+      assert.ok(Array.isArray(res.body.results));
+      const found = res.body.results.find((m: any) => m.title === "Searchable Poster Film");
+      assert.ok(found, "Candidate must be found in suggestions");
+      assert.strictEqual(found.poster_url, "https://image.tmdb.org/t/p/w500/searchable.jpg");
+    });
+
+    test("POST /giveup returns target poster_url in revealed answer", async () => {
+      const movieWithPoster: CatalogMovie = {
+        id: "daily-target-poster",
+        title: "Daily Target With Poster",
+        normalized_title: "daily target with poster",
+        aliases: [],
+        year: 2020,
+        director: "Master Director",
+        cast: ["Star Actor"],
+        genres: ["Drama"],
+        plot: "The plot of daily target.",
+        embedding: new Array(384).fill(0.05),
+        is_active: true,
+        poster_url: "https://image.tmdb.org/t/p/original/targetposter.jpg",
+      };
+
+      const customRepo = new MockMovieGoblinRepository([movieWithPoster]);
+      const customService = new MovieGoblinService(customRepo);
+      const customRouter = createMovieGoblinRouter(customService);
+
+      const res = await invokeRouter(customRouter, {
+        method: "POST",
+        url: "/giveup",
+      });
+
+      assert.strictEqual(res.status, 200);
+      assert.ok(res.body.revealedAnswer, "Revealed answer must be returned");
+      assert.strictEqual(
+        res.body.revealedAnswer.poster_url,
+        "https://image.tmdb.org/t/p/original/targetposter.jpg"
+      );
     });
   });
 });

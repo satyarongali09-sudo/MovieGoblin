@@ -3,6 +3,7 @@ import type { AttributeCheckResult, Clue, GuessHints, RevealedAnswer } from "./c
 export type GuessResult = {
   guess: string;
   matchedTitle?: string;
+  poster_url?: string;
   /** 0-100 integer match percent, shown as a number. */
   similarity: number;
   similarityLabel: string;
@@ -21,18 +22,104 @@ export type DayState = {
   clues?: Clue[];
   /** Direct attribute checks (Director / Actor / Year / Genre / Language). */
   attributeChecks?: AttributeCheckResult[];
+  /** Whether the player opened/revealed the Case File during active gameplay. */
+  caseFileOpened?: boolean;
   revealedAnswer?: RevealedAnswer;
 };
+
 export type Stats = {
   played: number;
   won: number;
   currentStreak: number;
   maxStreak: number;
   lastWonDate: string | null;
+  totalScore?: number;
+  bestScore?: number;
+  pureWins?: number;
+};
+
+export type ConsoleRank = "S+" | "S" | "A" | "B" | "C" | "F";
+
+export type ScoreBreakdown = {
+  total: number;
+  baseScore: number;
+  efficiencyBonus: number;
+  noCaseFileBonus: number;
+  noClueBonus: number;
+  rank: ConsoleRank;
+  rankTitle: string;
+  usedCaseFile: boolean;
+  cluesUsed: number;
+  guessCount: number;
 };
 
 const DAY_KEY = "wg:day";
 const STATS_KEY = "wg:stats";
+
+// ─── Score Calculation Engine ─────────────────────────────────────────────────
+
+/**
+ * Computes the final or projected score breakdown for a daily game.
+ * Max possible score: 1,500 PTS (500 Base + 500 1st-Guess Efficiency + 300 No-Case-File Bonus + 200 No-Clue Bonus).
+ * If the player chooses the option to hide the case file, they earn the +300 bonus points!
+ */
+export function computeGameScore(state: DayState, isCaseFileCurrentlyHidden?: boolean): ScoreBreakdown {
+  const isHidden = typeof isCaseFileCurrentlyHidden === "boolean" ? isCaseFileCurrentlyHidden : !state.caseFileOpened;
+  const usedCaseFile = !isHidden || (state.attributeChecks?.length ?? 0) > 0;
+  const cluesUsed = state.clues?.length ?? 0;
+  const guessCount = state.guesses.length;
+
+  if (state.surrendered && !state.solved) {
+    return {
+      total: 0,
+      baseScore: 0,
+      efficiencyBonus: 0,
+      noCaseFileBonus: 0,
+      noClueBonus: 0,
+      rank: "F",
+      rankTitle: "SIGNAL LOST",
+      usedCaseFile,
+      cluesUsed,
+      guessCount,
+    };
+  }
+
+  const effectiveGuesses = Math.max(1, guessCount);
+  const baseScore = 500;
+  const efficiencyBonus = Math.max(100, 500 - (effectiveGuesses - 1) * 45);
+  const noCaseFileBonus = usedCaseFile ? 0 : 300;
+  const noClueBonus = Math.max(0, 200 - cluesUsed * 50);
+  const total = baseScore + efficiencyBonus + noCaseFileBonus + noClueBonus;
+
+  let rank: ConsoleRank = "C";
+  let rankTitle = "ROOKIE AGENT";
+  if (total >= 1350) {
+    rank = "S+";
+    rankTitle = "APEX ORACLE";
+  } else if (total >= 1150) {
+    rank = "S";
+    rankTitle = "PURE DETECTIVE";
+  } else if (total >= 950) {
+    rank = "A";
+    rankTitle = "CHIEF ARCHIVIST";
+  } else if (total >= 750) {
+    rank = "B";
+    rankTitle = "FIELD OPERATIVE";
+  }
+
+  return {
+    total,
+    baseScore,
+    efficiencyBonus,
+    noCaseFileBonus,
+    noClueBonus,
+    rank,
+    rankTitle,
+    usedCaseFile,
+    cluesUsed,
+    guessCount,
+  };
+}
 
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
@@ -69,6 +156,7 @@ export function loadDayState(expectedDate?: string): DayState {
           surrendered: Boolean(parsed.surrendered),
           clues: Array.isArray(parsed.clues) ? parsed.clues : [],
           attributeChecks: Array.isArray(parsed.attributeChecks) ? parsed.attributeChecks : [],
+          caseFileOpened: Boolean(parsed.caseFileOpened),
           revealedAnswer: parsed.revealedAnswer,
         };
       }
@@ -76,7 +164,7 @@ export function loadDayState(expectedDate?: string): DayState {
   } catch {
     // ignore parse errors
   }
-  return { date: targetDate, guesses: [], solved: false };
+  return { date: targetDate, guesses: [], solved: false, caseFileOpened: false };
 }
 
 export function saveDayState(state: DayState): void {
@@ -90,14 +178,35 @@ export function saveDayState(state: DayState): void {
 export function loadStats(): Stats {
   try {
     const raw = localStorage.getItem(STATS_KEY);
-    if (raw) return JSON.parse(raw) as Stats;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Stats;
+      return {
+        played: parsed.played ?? 0,
+        won: parsed.won ?? 0,
+        currentStreak: parsed.currentStreak ?? 0,
+        maxStreak: parsed.maxStreak ?? 0,
+        lastWonDate: parsed.lastWonDate ?? null,
+        totalScore: parsed.totalScore ?? 0,
+        bestScore: parsed.bestScore ?? 0,
+        pureWins: parsed.pureWins ?? 0,
+      };
+    }
   } catch {
     // ignore
   }
-  return { played: 0, won: 0, currentStreak: 0, maxStreak: 0, lastWonDate: null };
+  return {
+    played: 0,
+    won: 0,
+    currentStreak: 0,
+    maxStreak: 0,
+    lastWonDate: null,
+    totalScore: 0,
+    bestScore: 0,
+    pureWins: 0,
+  };
 }
 
-export function recordWin(date: string): void {
+export function recordWin(date: string, score = 0, isPureWin = false): void {
   const stats = loadStats();
   const yesterday = getYesterdayUTC();
   stats.played += 1;
@@ -105,6 +214,11 @@ export function recordWin(date: string): void {
   stats.currentStreak = stats.lastWonDate === yesterday ? stats.currentStreak + 1 : 1;
   stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
   stats.lastWonDate = date;
+  stats.totalScore = (stats.totalScore ?? 0) + score;
+  stats.bestScore = Math.max(stats.bestScore ?? 0, score);
+  if (isPureWin) {
+    stats.pureWins = (stats.pureWins ?? 0) + 1;
+  }
   try {
     localStorage.setItem(STATS_KEY, JSON.stringify(stats));
   } catch {

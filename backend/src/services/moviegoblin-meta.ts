@@ -16,6 +16,10 @@ export type MovieMeta = {
   originalTitle?: string;
   keywords?: string[];
   rating?: number;
+  poster_url?: string;
+  popularity?: number;
+  vote_count?: number;
+  vote_average?: number;
 };
 
 export function metaKey(title: string, year: number): string {
@@ -32,8 +36,12 @@ export function getMovieMeta(movie: { title: string; year: number }): MovieMeta 
     return {
       ...csvMeta,
       ...curated,
+      poster_url: curated.poster_url || csvMeta.poster_url,
       keywords: curated.keywords?.length ? curated.keywords : csvMeta.keywords,
       rating: curated.rating ?? csvMeta.rating,
+      popularity: curated.popularity ?? csvMeta.popularity,
+      vote_count: curated.vote_count ?? csvMeta.vote_count,
+      vote_average: curated.vote_average ?? csvMeta.vote_average,
     };
   }
   return curated ?? csvMeta ?? EMPTY_META;

@@ -21,6 +21,7 @@ export type RevealedAnswer = {
   genres?: string[];
   language?: string;
   runtime?: number;
+  poster_url?: string;
 };
 
 export type Clue = { n: number; total: number; label: string; text: string };
@@ -32,6 +33,7 @@ export type SearchSuggestion = {
   originalTitle?: string;
   director?: string;
   language?: string;
+  poster_url?: string;
 };
 
 export type AttributeKind = "director" | "actor" | "year" | "genre" | "language";
@@ -71,6 +73,10 @@ export type CatalogMovie = {
   plot: string;
   embedding: number[];
   is_active: boolean;
+  poster_url?: string;
+  popularity?: number;
+  vote_count?: number;
+  vote_average?: number;
 };
 
 export type DailyPuzzleInfo = {
@@ -90,6 +96,7 @@ export type GuessEvaluationResult =
       similarity: number;
       similarityLabel: string;
       matchedTitle: string;
+      poster_url?: string;
       hints: GuessHints;
       revealedAnswer?: RevealedAnswer;
     };

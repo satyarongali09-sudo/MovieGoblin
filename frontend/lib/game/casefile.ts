@@ -69,7 +69,11 @@ export function describeYearWindow(file: CaseFile): string | null {
   if (file.exactYear !== undefined) return String(file.exactYear);
   const hasAfter = file.yearAfter !== undefined;
   const hasBefore = file.yearBefore !== undefined;
-  if (hasAfter && hasBefore) return `${(file.yearAfter as number) + 1} to ${(file.yearBefore as number) - 1}`;
+  if (hasAfter && hasBefore) {
+    const lo = (file.yearAfter as number) + 1;
+    const hi = (file.yearBefore as number) - 1;
+    return lo >= hi ? String(lo) : `${lo} to ${hi}`;
+  }
   if (hasAfter) return `after ${file.yearAfter}`;
   if (hasBefore) return `before ${file.yearBefore}`;
   return null;

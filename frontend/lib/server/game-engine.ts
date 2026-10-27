@@ -47,6 +47,7 @@ export function normalizeForSearch(input: string): string {
 }
 
 export function normPerson(name: string): string {
+  if (!name) return "";
   return name
     .toLowerCase()
     .normalize("NFD")
@@ -811,11 +812,13 @@ export function computeMatchPercent(
 
 export function buildRevealedAnswer(movie: CatalogMovie): RevealedAnswer {
   const m = getMovieMeta(movie);
+  const poster = movie.poster_url || m.poster_url;
   return {
     title: movie.title,
     year: movie.year,
+    ...(poster ? { poster_url: poster } : {}),
     ...(m.director ? { director: m.director } : {}),
-    ...(m.cast.length ? { cast: m.cast } : {}),
+    ...(m.cast && m.cast.length ? { cast: m.cast } : {}),
     ...(movie.genres?.length ? { genres: movie.genres } : {}),
     ...(m.language ? { language: m.language } : {}),
     ...(m.runtime ? { runtime: m.runtime } : {}),
@@ -866,7 +869,7 @@ export function buildClues(movie: CatalogMovie): Omit<Clue, "n" | "total">[] {
     clues.push({ label: "Director", text: `Directed by someone with the initials ${initials(meta.director)}` });
   }
 
-  if (meta.cast[0]) {
+  if (meta.cast && meta.cast[0]) {
     clues.push({ label: "Cast", text: `Starring an actor whose first name is ${meta.cast[0].split(" ")[0]}` });
   }
 
@@ -971,6 +974,7 @@ export function searchCatalog(query: string, movies: CatalogMovie[], limit = 40)
       ...(meta.originalTitle && meta.originalTitle !== movie.title ? { originalTitle: meta.originalTitle } : {}),
       ...(meta.director ? { director: meta.director } : {}),
       ...(meta.language ? { language: meta.language } : {}),
+      ...(movie.poster_url || meta.poster_url ? { poster_url: movie.poster_url || meta.poster_url } : {}),
     }));
 }
 

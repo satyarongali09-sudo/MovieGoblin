@@ -165,6 +165,7 @@ export async function runMovieImport(options: { apply?: boolean; csvPath?: strin
     genres: string[];
     plot: string;
     aliases: string[];
+    poster_url?: string;
   }> = [];
 
   // High-priority titles to import from CSV
@@ -224,6 +225,8 @@ export async function runMovieImport(options: { apply?: boolean; csvPath?: strin
           .map((g) => g.trim())
           .filter(Boolean);
 
+        const poster = (row.poster_url || row.Poster_Url || "").trim() || undefined;
+
         candidatesToEnrich.push({
           title,
           original_title: origTitle,
@@ -231,6 +234,7 @@ export async function runMovieImport(options: { apply?: boolean; csvPath?: strin
           genres: genres.length > 0 ? genres : ["Drama"],
           plot: overview,
           aliases: generateMovieAliases(title, origTitle, year),
+          poster_url: poster,
         });
       }
     }
@@ -248,6 +252,7 @@ export async function runMovieImport(options: { apply?: boolean; csvPath?: strin
     genres: string[];
     plot: string;
     clues: string[];
+    poster_url?: string;
   }> = [];
 
   const seenByTitleYear = new Set<string>();
@@ -307,6 +312,7 @@ export async function runMovieImport(options: { apply?: boolean; csvPath?: strin
       genres: m.genres,
       plot: m.plot,
       clues: [],
+      poster_url: m.poster_url,
     });
   }
 
@@ -329,6 +335,7 @@ export async function runMovieImport(options: { apply?: boolean; csvPath?: strin
     clues: string[];
     embedding: number[];
     is_active: boolean;
+    poster_url?: string;
   }> = [];
 
   for (let i = 0; i < combinedRaw.length; i++) {
@@ -355,6 +362,7 @@ export async function runMovieImport(options: { apply?: boolean; csvPath?: strin
       ...movie,
       embedding,
       is_active: true,
+      ...(movie.poster_url ? { poster_url: movie.poster_url } : {}),
     });
 
     if ((i + 1) % 5 === 0 || i + 1 === combinedRaw.length) {

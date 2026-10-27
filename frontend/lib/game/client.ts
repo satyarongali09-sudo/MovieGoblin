@@ -30,6 +30,7 @@ export type RevealedAnswer = {
   genres?: string[];
   language?: string;
   runtime?: number;
+  poster_url?: string;
 };
 
 export type Clue = {
@@ -46,6 +47,7 @@ export type SearchSuggestion = {
   originalTitle?: string;
   director?: string;
   language?: string;
+  poster_url?: string;
 };
 
 export type AttributeKind = "director" | "actor" | "year" | "genre" | "language";
@@ -91,6 +93,7 @@ export type GuessEvaluationResponse =
       similarity: number;
       similarityLabel: string;
       matchedTitle: string;
+      poster_url?: string;
       hints?: GuessHints;
       revealedAnswer?: RevealedAnswer;
     };

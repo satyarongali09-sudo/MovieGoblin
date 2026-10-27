@@ -214,6 +214,8 @@ export function createMovieGoblinRouter(
     "/giveup",
     giveUpRateLimiter,
     asyncHandler(async (_req: Request, res: Response) => {
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
+      res.setHeader("Pragma", "no-cache");
       try {
         res.json(await service.giveUp());
       } catch (err) {

@@ -8,6 +8,7 @@ type CompactMovie = {
   d?: string;
   l?: string;
   p?: number;
+  pu?: string;
 };
 
 const MOVIES = (catalogIndex.movies ?? []) as CompactMovie[];
@@ -134,6 +135,7 @@ export function searchLocalCatalog(query: string, movieLimit = 40, attrLimit = 8
       ...(m.o ? { originalTitle: m.o } : {}),
       ...(m.d ? { director: m.d } : {}),
       ...(m.l ? { language: m.l } : {}),
+      ...(m.pu ? { poster_url: m.pu } : {}),
     }));
 
   // Attribute search (for 2+ characters)

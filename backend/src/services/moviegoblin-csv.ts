@@ -1,7 +1,7 @@
 /**
- * Loads the full combined movie dataset (wordgoblin_movies_combined.csv, ~6,200 films)
+ * Loads the combined movie datasets (wordgoblin_movies_combined.csv + 9000plus.csv)
  * into memory so autocomplete, title/alias resolution, and credit lookups work across
- * the entire dataset without modifying Supabase tables.
+ * the entire ~13,000+ film catalog without modifying Supabase tables.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
@@ -11,7 +11,18 @@ import type { MovieMeta } from "./moviegoblin-meta.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-function parseCSV(text: string): string[][] {
+export function sanitize9000Csv(text: string): string {
+  // Fix unquoted multiline Pixie Hollow Bake Off row by properly enclosing the overview in quotes
+  return text.replace(
+    /(2013-10-20,Pixie Hollow Bake Off,)(Tink challenges[\s\S]*? - Magic Tricks,)/,
+    (_match, p1, p2) => {
+      const cleanOverview = p2.slice(0, -1).replace(/\r?\n\s*/g, " ");
+      return `${p1}"${cleanOverview}",`;
+    }
+  );
+}
+
+export function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
   let row: string[] = [];
   let cur = "";
@@ -67,7 +78,7 @@ const LANG_NAMES: Record<string, string> = {
   pt: "Portuguese",
 };
 
-function languageName(code: string): string | undefined {
+export function languageName(code: string): string | undefined {
   const clean = code.trim().toLowerCase();
   if (!clean) return undefined;
   if (LANG_NAMES[clean]) return LANG_NAMES[clean];
@@ -132,7 +143,7 @@ export function buildAliasesForRow(title: string, originalTitle?: string, year?:
  * Generates a deterministic 384-d unit vector from movie text features so CSV-only
  * movies can participate in cosineSimilarity when not yet embedded in Supabase.
  */
-function textToVector384(text: string): number[] {
+export function textToVector384(text: string): number[] {
   const vec = new Float64Array(384);
   const tokens = text
     .toLowerCase()
@@ -163,14 +174,14 @@ function textToVector384(text: string): number[] {
   return out;
 }
 
-type LoadedDataset = {
+export type LoadedDataset = {
   movies: CatalogMovie[];
   metaByKey: Record<string, MovieMeta>;
 };
 
 let cachedDataset: LoadedDataset | null = null;
 
-function findCsvPath(): string | null {
+function findCombinedCsvPath(): string | null {
   const candidates = [
     resolve(__dirname, "..", "..", "..", "wordgoblin_movies_combined.csv"),
     resolve(process.cwd(), "wordgoblin_movies_combined.csv"),
@@ -182,121 +193,285 @@ function findCsvPath(): string | null {
   return null;
 }
 
+function find9000CsvPath(): string | null {
+  const candidates = [
+    resolve(__dirname, "..", "..", "..", "9000plus.csv"),
+    resolve(process.cwd(), "9000plus.csv"),
+    resolve(process.cwd(), "..", "9000plus.csv"),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) return p;
+  }
+  return null;
+}
+
 export function loadCombinedCsvDataset(): LoadedDataset {
   if (cachedDataset) return cachedDataset;
 
-  const csvPath = findCsvPath();
-  if (!csvPath) {
+  const combinedCsvPath = findCombinedCsvPath();
+  const csv9000Path = find9000CsvPath();
+
+  if (!combinedCsvPath && !csv9000Path) {
     cachedDataset = { movies: [], metaByKey: {} };
     return cachedDataset;
   }
 
-  const raw = readFileSync(csvPath, "utf-8").replace(/^\ufeff/, "");
-  const rows = parseCSV(raw);
-  if (rows.length <= 1) {
-    cachedDataset = { movies: [], metaByKey: {} };
-    return cachedDataset;
+  // Pre-load 9000plus.csv into a lookup map to enrich existing records and prepare new ones
+  type NewCsvEntry = {
+    r: number;
+    title: string;
+    year: number;
+    overview: string;
+    genres: string[];
+    lang?: string;
+    poster?: string;
+    popularity?: number;
+    voteCount?: number;
+    voteAvg?: number;
+  };
+  const entries9000ByKey = new Map<string, NewCsvEntry>();
+
+  if (csv9000Path && existsSync(csv9000Path)) {
+    const raw9000 = readFileSync(csv9000Path, "utf-8").replace(/^\ufeff/, "");
+    const sanitized9000 = sanitize9000Csv(raw9000);
+    const rows9000 = parseCSV(sanitized9000);
+    if (rows9000.length > 1) {
+      const header = rows9000[0].map((h) => h.trim());
+      const iDate = header.indexOf("Release_Date");
+      const iTitle = header.indexOf("Title");
+      const iOverview = header.indexOf("Overview");
+      const iPop = header.indexOf("Popularity");
+      const iVotes = header.indexOf("Vote_Count");
+      const iVoteAvg = header.indexOf("Vote_Average");
+      const iLang = header.indexOf("Original_Language");
+      const iGenre = header.indexOf("Genre");
+      const iPoster = header.indexOf("Poster_Url");
+
+      for (let r = 1; r < rows9000.length; r++) {
+        const row = rows9000[r];
+        const title = (row[iTitle] || "").trim();
+        const dateStr = (row[iDate] || "").trim();
+        const overview = (row[iOverview] || "").trim();
+        if (!title || !overview || overview.length <= 10) continue;
+
+        const yearMatch = dateStr.match(/^(\d{4})/);
+        const year = yearMatch ? parseInt(yearMatch[1], 10) : 0;
+        if (year < 1888 || year > 2100) continue;
+
+        const norm = normalizeTitle(title);
+        if (!norm) continue;
+        const key = `${norm}::${year}`;
+
+        const rawGenres = (row[iGenre] || "").trim();
+        const genres = rawGenres
+          ? rawGenres
+              .split(/[|,]/)
+              .map((g) => g.trim())
+              .filter(Boolean)
+          : ["Drama"];
+        const lang = languageName(row[iLang] || "");
+        const poster = (row[iPoster] || "").trim();
+        const popVal = parseFloat(row[iPop] || "");
+        const popularity = !isNaN(popVal) && popVal > 0 ? popVal : undefined;
+        const votesVal = parseInt(row[iVotes] || "", 10);
+        const voteCount = !isNaN(votesVal) && votesVal >= 0 ? votesVal : undefined;
+        const avgVal = parseFloat(row[iVoteAvg] || "");
+        const voteAvg = !isNaN(avgVal) && avgVal > 0 ? avgVal : undefined;
+
+        // Keep highest popularity in case of intra-file duplicates
+        const existing = entries9000ByKey.get(key);
+        if (!existing || (popularity ?? 0) > (existing.popularity ?? 0)) {
+          entries9000ByKey.set(key, {
+            r,
+            title,
+            year,
+            overview,
+            genres,
+            lang,
+            poster: poster || undefined,
+            popularity,
+            voteCount,
+            voteAvg,
+          });
+        }
+      }
+    }
   }
-
-  const header = rows[0].map((h) => h.trim());
-  const idx = (name: string) => header.indexOf(name);
-
-  const iTitle = idx("title");
-  const iOrig = idx("original_title");
-  const iYear = idx("year");
-  const iLang = idx("language");
-  const iGenres = idx("genres");
-  const iKeywords = idx("keywords");
-  const iOverview = idx("overview");
-  const iDirector = idx("director");
-  const iCast = idx("cast");
-  const iRating = idx("rating");
-  const iRuntime = idx("runtime");
 
   const movies: CatalogMovie[] = [];
   const metaByKey: Record<string, MovieMeta> = {};
   const seenKey = new Set<string>();
   const seenNorm = new Map<string, number>();
 
-  for (let r = 1; r < rows.length; r++) {
-    const cols = rows[r];
-    const title = (cols[iTitle] || "").trim();
-    if (!title) continue;
+  // 1. Process primary wordgoblin_movies_combined.csv (taking precedence for director, cast, runtime)
+  if (combinedCsvPath && existsSync(combinedCsvPath)) {
+    const raw = readFileSync(combinedCsvPath, "utf-8").replace(/^\ufeff/, "");
+    const rows = parseCSV(raw);
 
-    const parsedYear = parseInt((cols[iYear] || "").trim(), 10);
-    const year = !isNaN(parsedYear) && parsedYear >= 1888 && parsedYear <= 2100 ? parsedYear : 0;
-    if (year === 0) continue; // Keep movies with valid release years (6,153 films)
+    if (rows.length > 1) {
+      const header = rows[0].map((h) => h.trim());
+      const idx = (name: string) => header.indexOf(name);
 
-    const baseNorm = normalizeTitle(title);
-    if (!baseNorm) continue;
+      const iTitle = idx("title");
+      const iOrig = idx("original_title");
+      const iYear = idx("year");
+      const iLang = idx("language");
+      const iGenres = idx("genres");
+      const iKeywords = idx("keywords");
+      const iOverview = idx("overview");
+      const iDirector = idx("director");
+      const iCast = idx("cast");
+      const iRating = idx("rating");
+      const iRuntime = idx("runtime");
 
-    const dedupKey = `${baseNorm}::${year}`;
-    if (seenKey.has(dedupKey)) continue;
-    seenKey.add(dedupKey);
+      for (let r = 1; r < rows.length; r++) {
+        const cols = rows[r];
+        const title = (cols[iTitle] || "").trim();
+        if (!title) continue;
 
-    const origTitle = (cols[iOrig] || "").trim();
-    const rawGenres = (cols[iGenres] || "").trim();
-    const genres = rawGenres
-      ? rawGenres
-          .split(/[|,]/)
-          .map((g) => g.trim())
+        const parsedYear = parseInt((cols[iYear] || "").trim(), 10);
+        const year = !isNaN(parsedYear) && parsedYear >= 1888 && parsedYear <= 2100 ? parsedYear : 0;
+        if (year === 0) continue;
+
+        const baseNorm = normalizeTitle(title);
+        if (!baseNorm) continue;
+
+        const dedupKey = `${baseNorm}::${year}`;
+        if (seenKey.has(dedupKey)) continue;
+        seenKey.add(dedupKey);
+
+        const origTitle = (cols[iOrig] || "").trim();
+        const rawGenres = (cols[iGenres] || "").trim();
+        const genres = rawGenres
+          ? rawGenres
+              .split(/[|,]/)
+              .map((g) => g.trim())
+              .filter(Boolean)
+          : ["Drama"];
+
+        const plot = (cols[iOverview] || "").trim() || `${title} (${year}) — ${genres.join(", ")} film.`;
+        const keywordsRaw = (cols[iKeywords] || "").trim();
+        const keywords = keywordsRaw
+          ? keywordsRaw
+              .split(/[|,]/)
+              .map((k) => k.trim())
+              .filter(Boolean)
+          : [];
+        const director = (cols[iDirector] || "").split("|")[0]?.trim() || undefined;
+        const cast = (cols[iCast] || "")
+          .split("|")
+          .map((s) => s.trim())
           .filter(Boolean)
-      : ["Drama"];
+          .slice(0, 6);
+        const lang = languageName(cols[iLang] || "");
+        const ratingVal = parseFloat(cols[iRating] || "");
+        const rating = !isNaN(ratingVal) && ratingVal > 0 ? ratingVal : undefined;
+        const runtimeVal = Math.round(parseFloat(cols[iRuntime] || ""));
+        const runtime = runtimeVal > 0 ? runtimeVal : undefined;
 
-    const plot = (cols[iOverview] || "").trim() || `${title} (${year}) — ${genres.join(", ")} film.`;
-    const keywordsRaw = (cols[iKeywords] || "").trim();
-    const keywords = keywordsRaw
-      ? keywordsRaw
-          .split(/[|,]/)
-          .map((k) => k.trim())
-          .filter(Boolean)
-      : [];
-    const director = (cols[iDirector] || "").split("|")[0]?.trim() || undefined;
-    const cast = (cols[iCast] || "")
-      .split("|")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .slice(0, 6);
-    const lang = languageName(cols[iLang] || "");
-    const ratingVal = parseFloat(cols[iRating] || "");
-    const rating = !isNaN(ratingVal) && ratingVal > 0 ? ratingVal : undefined;
-    const runtimeVal = Math.round(parseFloat(cols[iRuntime] || ""));
-    const runtime = runtimeVal > 0 ? runtimeVal : undefined;
+        // Enrich with poster and vote metrics from 9000plus.csv if available
+        const enrichment = entries9000ByKey.get(dedupKey);
+        const posterUrl = enrichment?.poster;
+        const popularity = enrichment?.popularity;
+        const voteCount = enrichment?.voteCount;
+        const voteAvg = enrichment?.voteAvg ?? rating;
 
+        let finalNorm = baseNorm;
+        const extraAliases: string[] = [];
+        if (seenNorm.has(baseNorm) && seenNorm.get(baseNorm) !== year) {
+          finalNorm = `${baseNorm} ${year}`;
+          extraAliases.push(baseNorm, `${title} (${year})`, `${title} ${year}`);
+        } else {
+          seenNorm.set(baseNorm, year);
+        }
+
+        const aliases = [
+          ...buildAliasesForRow(title, origTitle, year),
+          ...extraAliases,
+        ];
+
+        metaByKey[dedupKey] = {
+          ...(director ? { director } : {}),
+          cast,
+          ...(lang ? { language: lang } : {}),
+          ...(runtime ? { runtime } : {}),
+          ...(rating ? { rating } : {}),
+          ...(keywords.length ? { keywords } : {}),
+          ...(origTitle && origTitle !== title ? { originalTitle: origTitle } : {}),
+          ...(posterUrl ? { poster_url: posterUrl } : {}),
+          ...(popularity ? { popularity } : {}),
+          ...(voteCount ? { vote_count: voteCount } : {}),
+          ...(voteAvg ? { vote_average: voteAvg } : {}),
+        };
+
+        movies.push({
+          id: `csv-${r}`,
+          title,
+          normalized_title: finalNorm,
+          aliases,
+          year,
+          genres,
+          plot,
+          embedding: textToVector384(
+            `${title} ${origTitle} ${year} ${genres.join(" ")} ${keywordsRaw} ${plot} ${director ?? ""} ${cast.join(" ")}`
+          ),
+          is_active: true,
+          poster_url: posterUrl,
+          popularity,
+          vote_count: voteCount,
+          vote_average: voteAvg,
+        });
+      }
+    }
+  }
+
+  // 2. Process new non-overlapping records from 9000plus.csv
+  for (const [key, entry] of entries9000ByKey.entries()) {
+    if (seenKey.has(key)) continue;
+    seenKey.add(key);
+
+    const baseNorm = normalizeTitle(entry.title);
     let finalNorm = baseNorm;
     const extraAliases: string[] = [];
-    if (seenNorm.has(baseNorm) && seenNorm.get(baseNorm) !== year) {
-      finalNorm = `${baseNorm} ${year}`;
-      extraAliases.push(baseNorm, `${title} (${year})`, `${title} ${year}`);
+
+    // Remake handling: append year to normalized_title to satisfy uniqueness
+    if (seenNorm.has(baseNorm) && seenNorm.get(baseNorm) !== entry.year) {
+      finalNorm = `${baseNorm} ${entry.year}`;
+      extraAliases.push(baseNorm, `${entry.title} (${entry.year})`, `${entry.title} ${entry.year}`);
     } else {
-      seenNorm.set(baseNorm, year);
+      seenNorm.set(baseNorm, entry.year);
     }
 
     const aliases = [
-      ...buildAliasesForRow(title, origTitle, year),
+      ...buildAliasesForRow(entry.title, undefined, entry.year),
       ...extraAliases,
     ];
 
-    metaByKey[dedupKey] = {
-      ...(director ? { director } : {}),
-      cast,
-      ...(lang ? { language: lang } : {}),
-      ...(runtime ? { runtime } : {}),
-      ...(rating ? { rating } : {}),
-      ...(keywords.length ? { keywords } : {}),
-      ...(origTitle && origTitle !== title ? { originalTitle: origTitle } : {}),
+    metaByKey[key] = {
+      cast: [],
+      ...(entry.lang ? { language: entry.lang } : {}),
+      ...(entry.poster ? { poster_url: entry.poster } : {}),
+      ...(entry.popularity ? { popularity: entry.popularity } : {}),
+      ...(entry.voteCount ? { vote_count: entry.voteCount } : {}),
+      ...(entry.voteAvg ? { vote_average: entry.voteAvg, rating: entry.voteAvg } : {}),
     };
 
     movies.push({
-      id: `csv-${r}`,
-      title,
+      id: `csv-9000-${entry.r}`,
+      title: entry.title,
       normalized_title: finalNorm,
       aliases,
-      year,
-      genres,
-      plot,
-      embedding: textToVector384(`${title} ${origTitle} ${year} ${genres.join(" ")} ${keywordsRaw} ${plot} ${director ?? ""} ${cast.join(" ")}`),
+      year: entry.year,
+      genres: entry.genres,
+      plot: entry.overview,
+      embedding: textToVector384(
+        `${entry.title} ${entry.year} ${entry.genres.join(" ")} ${entry.overview}`
+      ),
       is_active: true,
+      poster_url: entry.poster,
+      popularity: entry.popularity,
+      vote_count: entry.voteCount,
+      vote_average: entry.voteAvg,
     });
   }
 

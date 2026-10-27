@@ -259,4 +259,69 @@ describe("MovieGoblin Daily Puzzle Assignment", () => {
     assert.ok(!json.includes(targetMovie.title), "Must not leak target title");
     assert.ok(!json.includes(targetMovie.plot), "Must not leak target plot");
   });
+
+  test("7. Consecutive day dissimilarity: no movie or director matches from today to tomorrow", async () => {
+    const repo = new TrackingMovieRepository(sampleMovies);
+    const service = new MovieGoblinService(repo);
+
+    let prevMovie: CatalogMovie | null = null;
+
+    for (let day = 1; day <= 20; day++) {
+      const dateStr = `2026-11-${String(day).padStart(2, "0")}`;
+      const movie = await service.getDailyMovie(dateStr);
+
+      if (prevMovie) {
+        // Must never match today to tomorrow
+        assert.notStrictEqual(movie.id, prevMovie.id, `Day ${dateStr} must not repeat yesterday's movie`);
+        assert.notStrictEqual(
+          movie.title.toLowerCase(),
+          prevMovie.title.toLowerCase(),
+          `Day ${dateStr} must not repeat yesterday's title`
+        );
+
+        // Must not share same franchise stem (e.g., Baahubali 1 vs Baahubali 2)
+        const stemA = movie.title.toLowerCase().replace(/^(the|a|an)\s+/, "").split(/[:\-\s]/)[0];
+        const stemB = prevMovie.title.toLowerCase().replace(/^(the|a|an)\s+/, "").split(/[:\-\s]/)[0];
+        if (stemA.length >= 4) {
+          assert.notStrictEqual(
+            stemA,
+            stemB,
+            `Consecutive days ${dateStr} must not share franchise stem ${stemA}`
+          );
+        }
+      }
+
+      prevMovie = movie;
+    }
+  });
+
+  test("8. Multilingual cinema rotation: Tollywood (Telugu) movies are actively featured", async () => {
+    const repo = new TrackingMovieRepository(sampleMovies);
+    const service = new MovieGoblinService(repo);
+
+    const selectedTitles: string[] = [];
+    let teluguCount = 0;
+
+    for (let day = 1; day <= 30; day++) {
+      const dateStr = `2026-12-${String(day).padStart(2, "0")}`;
+      const movie = await service.getDailyMovie(dateStr);
+      selectedTitles.push(movie.title);
+
+      const isTelugu =
+        movie.genres?.includes("Telugu") ||
+        movie.plot?.toLowerCase().includes("telugu") ||
+        ["rrr", "baahubali", "eega", "pushpa", "rangasthalam", "jersey", "kalki", "mahanati", "pokiri", "athadu"].some(
+          (kw) => movie.title.toLowerCase().includes(kw)
+        );
+
+      if (isTelugu) {
+        teluguCount++;
+      }
+    }
+
+    assert.ok(
+      teluguCount >= 5,
+      `Expected at least 5 Tollywood movies across 30 days, got ${teluguCount}. Selected: ${selectedTitles.join(", ")}`
+    );
+  });
 });

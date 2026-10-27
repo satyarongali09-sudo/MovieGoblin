@@ -17,6 +17,7 @@ import {
   type SearchSuggestion,
 } from "./moviegoblin-game.js";
 import { loadCombinedCsvDataset } from "./moviegoblin-csv.js";
+import { getMovieMeta } from "./moviegoblin-meta.js";
 
 export type {
   AttributeCheckResult,
@@ -72,6 +73,10 @@ export type CatalogMovie = {
   plot: string;
   embedding: number[];
   is_active: boolean;
+  poster_url?: string;
+  popularity?: number;
+  vote_count?: number;
+  vote_average?: number;
 };
 
 export type DailyPuzzleInfo = {
@@ -91,6 +96,7 @@ export type GuessEvaluationResult =
       similarity: number;
       similarityLabel: string;
       matchedTitle: string;
+      poster_url?: string;
       hints: GuessHints;
       revealedAnswer?: RevealedAnswer;
     };
@@ -257,6 +263,167 @@ export class SupabaseMovieGoblinRepository implements IMovieGoblinRepository {
   }
 }
 
+export function getPreviousDayUTC(dateUTC: string): string {
+  const [y, m, d] = dateUTC.split("-").map(Number);
+  const prevDate = new Date(Date.UTC(y, m - 1, d - 1));
+  return prevDate.toISOString().slice(0, 10);
+}
+
+export function hashDate(dateStr: string, salt = 0x85ebca6b): number {
+  let h = 0x12b9b0a1 ^ salt;
+  for (let i = 0; i < dateStr.length; i++) {
+    h = Math.imul(h ^ dateStr.charCodeAt(i), 0x5bd1e995);
+    h ^= h >>> 15;
+  }
+  return h >>> 0;
+}
+
+/**
+ * Intelligent Daily Target Movie Selection:
+ * 1. Zero consecutive matches: Day N and Day N+1 will NEVER be the same movie.
+ * 2. Strict anti-similarity filter: Prevents consecutive same-director, same-franchise/title stem, and same lead actor.
+ * 3. Dynamic multilingual cinema rotation: Interleaves English & World cinema with prominent Tollywood (Telugu) blockbusters & classics.
+ * 4. High-entropy pseudo-random selection: Prevents predictable guessing based on catalog ordering.
+ */
+export function selectDailyTarget(
+  activeMovies: CatalogMovie[],
+  dateUTC: string,
+  yesterdayMovie?: CatalogMovie | null,
+  twoDaysAgoMovie?: CatalogMovie | null
+): CatalogMovie {
+  if (activeMovies.length === 0) {
+    throw new CatalogUnavailableError("Cannot select daily puzzle: active movie pool is empty.");
+  }
+  if (activeMovies.length === 1) {
+    return activeMovies[0];
+  }
+
+  // Filter high-quality target candidates:
+  // Must have verified metadata in MOVIE_META or explicit director and cast.
+  const curatedCandidates = activeMovies.filter((m) => {
+    const meta = getMovieMeta(m);
+    if (meta && meta.director && meta.cast && meta.cast.length > 0) return true;
+    if (!m.id.startsWith("csv-") && !m.id.startsWith("cat-") && m.plot && m.plot.length >= 20) return true;
+    return false;
+  });
+
+  const pool = curatedCandidates.length >= 5 ? curatedCandidates : activeMovies;
+
+  // Stably sort pool
+  const sorted = [...pool].sort((a, b) => {
+    const cmp = normalizeTitle(a.title).localeCompare(normalizeTitle(b.title));
+    return cmp !== 0 ? cmp : a.year - b.year;
+  });
+
+  // Calculate day index from fixed epoch
+  const EPOCH_UTC = Date.UTC(2026, 0, 1);
+  const [y, m, d] = dateUTC.split("-").map(Number);
+  const targetMs = Date.UTC(y, m - 1, d);
+  const dayIndex = Math.floor((targetMs - EPOCH_UTC) / 86_400_000);
+  const dateHash = hashDate(dateUTC);
+
+  // Metadata for lookback checks
+  const yesterdayMeta = yesterdayMovie ? getMovieMeta(yesterdayMovie) : null;
+  const twoDaysAgoMeta = twoDaysAgoMovie ? getMovieMeta(twoDaysAgoMovie) : null;
+
+  const yesterdayLang = yesterdayMeta?.language?.toLowerCase() ?? "";
+  const twoDaysAgoLang = twoDaysAgoMeta?.language?.toLowerCase() ?? "";
+
+  // Balanced cinema rotation: Tollywood vs English/Global
+  const preferTollywood = yesterdayLang !== "telugu" && twoDaysAgoLang !== "telugu" && (Math.abs(dayIndex) % 3 === 0 || Math.abs(dayIndex) % 3 === 2);
+  const preferEnglish = yesterdayLang === "telugu";
+
+  let workingPool = sorted;
+  if (preferTollywood) {
+    const tollywood = sorted.filter((m) => getMovieMeta(m)?.language?.toLowerCase() === "telugu");
+    if (tollywood.length >= 3) {
+      workingPool = tollywood;
+    }
+  } else if (preferEnglish) {
+    const english = sorted.filter((m) => getMovieMeta(m)?.language?.toLowerCase() !== "telugu");
+    if (english.length >= 3) {
+      workingPool = english;
+    }
+  }
+
+  const baseOffset = (dateHash + Math.abs(dayIndex) * 997) % workingPool.length;
+  const PRIME_STEP = 7919;
+
+  // Tier 1: Check strict anti-similarity (distinct movie, distinct director, distinct franchise, distinct lead actor)
+  for (let probe = 0; probe < workingPool.length; probe++) {
+    const idx = (baseOffset + probe * PRIME_STEP) % workingPool.length;
+    const candidate = workingPool[idx];
+
+    // Must not be same movie as yesterday or two days ago
+    if (yesterdayMovie && (candidate.id === yesterdayMovie.id || normalizeTitle(candidate.title) === normalizeTitle(yesterdayMovie.title))) {
+      continue;
+    }
+    if (twoDaysAgoMovie && (candidate.id === twoDaysAgoMovie.id || normalizeTitle(candidate.title) === normalizeTitle(twoDaysAgoMovie.title))) {
+      continue;
+    }
+
+    const candMeta = getMovieMeta(candidate);
+
+    // Must not share same director as yesterday
+    if (yesterdayMeta?.director && candMeta?.director && yesterdayMeta.director.toLowerCase() === candMeta.director.toLowerCase()) {
+      continue;
+    }
+
+    // Must not share same franchise stem (e.g. Baahubali, Godfather, Batman, Pushpa)
+    if (yesterdayMovie) {
+      const stemA = normalizeTitle(candidate.title).replace(/^(the|a|an)\s+/, "").split(/[:\-\s]/)[0];
+      const stemB = normalizeTitle(yesterdayMovie.title).replace(/^(the|a|an)\s+/, "").split(/[:\-\s]/)[0];
+      if (stemA.length >= 4 && stemA === stemB) {
+        continue;
+      }
+    }
+
+    // Must not share same primary lead actor as yesterday
+    if (yesterdayMeta?.cast?.length && candMeta?.cast?.length) {
+      const leadA = candMeta.cast[0].toLowerCase();
+      const leadB = yesterdayMeta.cast[0].toLowerCase();
+      if (leadA === leadB) {
+        continue;
+      }
+    }
+
+    return candidate;
+  }
+
+  // Tier 2: Search full sorted pool if workingPool was restricted by language
+  if (workingPool !== sorted) {
+    const fullBase = (dateHash + Math.abs(dayIndex) * 997) % sorted.length;
+    for (let probe = 0; probe < sorted.length; probe++) {
+      const idx = (fullBase + probe * PRIME_STEP) % sorted.length;
+      const candidate = sorted[idx];
+
+      if (yesterdayMovie && (candidate.id === yesterdayMovie.id || normalizeTitle(candidate.title) === normalizeTitle(yesterdayMovie.title))) {
+        continue;
+      }
+      if (twoDaysAgoMovie && (candidate.id === twoDaysAgoMovie.id || normalizeTitle(candidate.title) === normalizeTitle(twoDaysAgoMovie.title))) {
+        continue;
+      }
+
+      const candMeta = getMovieMeta(candidate);
+      if (yesterdayMeta?.director && candMeta?.director && yesterdayMeta.director.toLowerCase() === candMeta.director.toLowerCase()) {
+        continue;
+      }
+
+      return candidate;
+    }
+  }
+
+  // Tier 3: Relax to ensure candidate is at least not yesterday's movie
+  for (let probe = 0; probe < sorted.length; probe++) {
+    const idx = (baseOffset + probe) % sorted.length;
+    const candidate = sorted[idx];
+    if (yesterdayMovie && candidate.id === yesterdayMovie.id) continue;
+    return candidate;
+  }
+
+  return sorted[baseOffset % sorted.length];
+}
+
 // ─── MovieGoblin Service ──────────────────────────────────────────────────────
 
 export class MovieGoblinService {
@@ -304,19 +471,21 @@ export class MovieGoblinService {
       }
     }
 
-    // 3. Deterministically pick daily movie from active primary catalog
-    const primaryActive = activeMovies.filter((m) => !m.id.startsWith("csv-"));
-    const pool = primaryActive.length > 0 ? primaryActive : activeMovies;
-    const sorted = [...pool].sort((a, b) => a.id.localeCompare(b.id));
-    const EPOCH_UTC = Date.UTC(2026, 9, 24);
-    const [y, m, d] = dateUTC.split("-").map(Number);
-    const targetMs = Date.UTC(y, m - 1, d);
-    const dayIndex = Math.floor((targetMs - EPOCH_UTC) / 86_400_000);
-    const candidate = sorted[Math.abs(dayIndex) % sorted.length];
+    // 3. Look up yesterday & 2-days-ago assignments for anti-clustering dissimilarity check
+    const yesterdayUTC = getPreviousDayUTC(dateUTC);
+    const yesterdayId = await this.repo.getDailyAssignment(yesterdayUTC).catch(() => null);
+    const yesterdayMovie = yesterdayId ? activeMovies.find((m) => m.id === yesterdayId) ?? null : null;
 
-    // 4. Safely record assignment in moviegoblin_daily (conflict-safe)
+    const twoDaysAgoUTC = getPreviousDayUTC(yesterdayUTC);
+    const twoDaysAgoId = await this.repo.getDailyAssignment(twoDaysAgoUTC).catch(() => null);
+    const twoDaysAgoMovie = twoDaysAgoId ? activeMovies.find((m) => m.id === twoDaysAgoId) ?? null : null;
+
+    // 4. Select candidate using intelligent dissimilarity & multilingual cinema rotation
+    const candidate = selectDailyTarget(activeMovies, dateUTC, yesterdayMovie, twoDaysAgoMovie);
+
+    // 5. Safely record assignment in moviegoblin_daily (conflict-safe)
     const assignedId = await this.repo.createDailyAssignment(dateUTC, candidate.id);
-    const finalMovie = sorted.find((m) => m.id === assignedId) ?? candidate;
+    const finalMovie = activeMovies.find((m) => m.id === assignedId) ?? candidate;
     return finalMovie;
   }
 
@@ -363,6 +532,7 @@ export class MovieGoblinService {
     }
 
     const hints = buildGuessHints(candidate, targetMovie);
+    const candidatePoster = candidate.poster_url || getMovieMeta(candidate).poster_url;
 
     // 2. Check if guess is correct
     const isExactMatch = candidate.id === targetMovie.id;
@@ -374,6 +544,7 @@ export class MovieGoblinService {
         similarity: 100,
         similarityLabel: "🎬 Correct!",
         matchedTitle: `${candidate.title} (${candidate.year})`,
+        poster_url: candidatePoster,
         hints,
         revealedAnswer: buildRevealedAnswer(targetMovie),
       };
@@ -390,6 +561,7 @@ export class MovieGoblinService {
       similarity: similarityPercent,
       similarityLabel: warmth,
       matchedTitle: `${candidate.title} (${candidate.year})`,
+      poster_url: candidatePoster,
       hints,
     };
   }
