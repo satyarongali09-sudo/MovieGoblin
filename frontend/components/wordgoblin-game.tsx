@@ -786,15 +786,20 @@ export function WordGoblinGame() {
 
                   {/* Search combobox: movies (from 1st letter) + Director / Actor / Year / Genre / Language */}
                   {!isGameOver && (
-                    <form className="mg-search-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
+                    <form className="mg-search-form" onSubmit={(e) => void handleSubmit(e)} noValidate autoComplete="off">
                       <div className="mg-search-bar">
                         <div className="mg-combobox" ref={comboRef}>
                           <input
                             ref={inputRef}
+                            id="movie_goblin_guess_input"
+                            name="movie_goblin_guess_input"
                             className="mg-input"
                             autoComplete="off"
                             autoCorrect="off"
+                            autoCapitalize="none"
                             spellCheck={false}
+                            data-lpignore="true"
+                            data-form-type="other"
                             disabled={!canGuess && !submitting}
                             onChange={(e) => handleInputChange(e.target.value)}
                             onFocus={() => setListOpen(true)}
@@ -983,63 +988,41 @@ export function WordGoblinGame() {
                   )}
                 </div>
 
-                {/* ── Main Console Workspace (Case File Dossier On-Demand + Guess History Log) ── */}
+                {/* ── Main Console Workspace (Case File Dossier Bar + Guess History Log) ── */}
                 {!serverError && (
-                  <div className={caseFileVisible ? "mg-workspace-grid is-dossier-open" : "mg-workspace-grid is-dossier-closed"}>
-                    {/* LEFT / TOP DOSSIER COLUMN: Hidden by default until player clicks Case File heading */}
-                    <div className="mg-col-dossier">
-                      <section className={caseFileVisible ? "mg-casefile is-open" : "mg-casefile is-sealed"} aria-label="Case file">
-                        <button
-                          type="button"
-                          className="mg-casefile-toggle"
-                          onClick={handleToggleCaseFile}
-                          aria-expanded={caseFileVisible}
-                        >
-                          <div className="mg-casefile-toggle-left">
-                            <span className="mg-casefile-icon" aria-hidden="true">
-                              {caseFileVisible ? "📂" : "📁"}
-                            </span>
-                            <h2 className="mg-casefile-title">Case File</h2>
-                            {!caseFileVisible ? (
-                              <span className="mg-pure-pill">🔒 HIDDEN (+300 PTS BONUS)</span>
-                            ) : (
-                              <span className="mg-pure-pill mg-pure-pill-open">OPEN · CLICK TO HIDE</span>
-                            )}
-                          </div>
-                          <div className="mg-casefile-toggle-right">
-                            <span className="mg-panel-counter">
-                              {caseFileVisible
-                                ? `${unlockedCaseCount}/5 UNLOCKED · HIDE ▲`
-                                : `HIDDEN · OPEN ▼`}
-                            </span>
-                          </div>
-                        </button>
+                  <div className="mg-workspace">
+                    {/* Sleek, prominent Case File Bar */}
+                    <section className="mg-casefile-section" aria-label="Detective Case File">
+                      <button
+                        type="button"
+                        className={`mg-casefile-bar ${caseFileVisible ? "is-open" : "is-closed"}`}
+                        onClick={caseFileVisible ? handleHideCaseFileOption : handleToggleCaseFile}
+                        aria-expanded={caseFileVisible}
+                      >
+                        <div className="mg-casefile-bar-left">
+                          <span className="mg-casefile-bar-icon" aria-hidden="true">
+                            {caseFileVisible ? "📂" : "📁"}
+                          </span>
+                          <span className="mg-casefile-bar-title">CASE FILE</span>
+                          <span className="mg-casefile-bar-badge">
+                            {unlockedCaseCount}/5 UNCOVERED
+                          </span>
+                        </div>
+                        <div className="mg-casefile-bar-right">
+                          {!caseFileVisible ? (
+                            <span className="mg-pure-bonus-tag">🔒 +300 PURE BONUS</span>
+                          ) : (
+                            <span className="mg-pure-bonus-tag is-revealed">CLUES REVEALED</span>
+                          )}
+                          <span className="mg-casefile-bar-action">
+                            {caseFileVisible ? "HIDE ▲" : "VIEW CLUES ▼"}
+                          </span>
+                        </div>
+                      </button>
 
-                        {!caseFileVisible ? (
-                          <div className="mg-casefile-sealed-body">
-                            <p className="mg-sealed-text">
-                              <strong>Case File Hidden (Pure Mode Active).</strong> Clues for Director, Cast, Year, Genre &amp; Language are hidden. Solve while keeping the Case File hidden to earn an extra <strong>+300 Points</strong>!
-                            </p>
-                            <button
-                              type="button"
-                              className="mg-btn-unseal"
-                              onClick={handleToggleCaseFile}
-                            >
-                              📂 Reveal Case File Clues
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="mg-casefile-rows">
-                            <div className="mg-casefile-open-bar">
-                              <span className="mg-casefile-hint">Clues Revealed · Standard Points</span>
-                              <button
-                                type="button"
-                                className="mg-btn-rehide"
-                                onClick={handleHideCaseFileOption}
-                              >
-                                🔒 Hide Case File (+300 PTS Bonus)
-                              </button>
-                            </div>
+                      {caseFileVisible && (
+                        <div className="mg-casefile-drawer">
+                          <div className="mg-casefile-grid">
                             <div className="mg-case-row">
                               <span className={caseFile.director ? "mg-badge mg-badge-d is-found" : "mg-badge mg-badge-d"}>
                                 D
@@ -1053,7 +1036,7 @@ export function WordGoblinGame() {
                               <span className={caseFile.cast.length ? "mg-badge mg-badge-star is-found" : "mg-badge mg-badge-star"}>
                                 ★
                               </span>
-                              <span className="mg-case-label">Actors</span>
+                              <span className="mg-case-label">Cast</span>
                               <span className={caseFile.cast.length ? "mg-case-val" : "mg-case-val is-unknown"}>
                                 {caseFile.cast.length ? caseFile.cast.join(", ") : "???"}
                               </span>
@@ -1082,25 +1065,25 @@ export function WordGoblinGame() {
                               </span>
                             </div>
                           </div>
-                        )}
-                      </section>
-
-                      {/* Clues revealed so far */}
-                      {clues.length > 0 && (
-                        <ol className="mg-clue-list" aria-label="Clues">
-                          {clues.map((c) => (
-                            <li key={c.n} className="mg-clue-item">
-                              <span className="mg-clue-badge">
-                                Clue {c.n}/{c.total} · {c.label}
-                              </span>
-                              <p className="mg-clue-body">{c.text}</p>
-                            </li>
-                          ))}
-                        </ol>
+                        </div>
                       )}
-                    </div>
+                    </section>
 
-                    {/* RIGHT COLUMN: Guess History Log */}
+                    {/* Clues revealed so far */}
+                    {clues.length > 0 && (
+                      <ol className="mg-clue-list" aria-label="Clues">
+                        {clues.map((c) => (
+                          <li key={c.n} className="mg-clue-item">
+                            <span className="mg-clue-badge">
+                              Clue {c.n}/{c.total} · {c.label}
+                            </span>
+                            <p className="mg-clue-body">{c.text}</p>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+
+                    {/* Guess History Log */}
                     <section className="mg-history-section" aria-label="Guess history">
                       <div className="mg-history-header">
                         <span>
@@ -1216,9 +1199,9 @@ export function WordGoblinGame() {
                         </div>
                       ) : (
                         <div className="mg-empty-state">
-                          <p className="mg-empty-headline">One mystery. Unlimited guesses.</p>
+                          <p className="mg-empty-headline">READY FOR YOUR FIRST GUESS</p>
                           <p className="mg-empty-sub">
-                            Guess any movie title for a 0–99% match score. Keep the <strong>Case File</strong> hidden to earn the <strong>+300 PT Pure Detective Bonus</strong>, or open it anytime to inspect shared credits!
+                            Type any movie title above to uncover match similarity and clue hints!
                           </p>
                         </div>
                       )}
@@ -1232,7 +1215,7 @@ export function WordGoblinGame() {
                     How to Play
                   </button>
                   <button className="mg-softkey-center" onClick={() => setShowStats(true)} type="button">
-                    {stats.currentStreak}D Streak · {stats.won} Solved
+                    Stats &amp; Streaks
                   </button>
                   <button
                     className="mg-softkey-btn"

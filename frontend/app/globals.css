@@ -1372,223 +1372,169 @@ p {
   color: var(--mg-brown);
 }
 
-/* ── Main 2-Column Console Workspace ─────────────────────────────────────── */
-.mg-workspace-grid {
-  display: grid;
-  grid-template-columns: 390px minmax(0, 1fr);
-  gap: 20px;
-  align-items: stretch;
+/* ── Custom Retro Console Scrollbars ─────────────────────────────────────── */
+.mg-history-list::-webkit-scrollbar,
+.mg-suggestions::-webkit-scrollbar,
+.mg-modal-content::-webkit-scrollbar,
+.mg-clue-list::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.mg-history-list::-webkit-scrollbar-track,
+.mg-suggestions::-webkit-scrollbar-track,
+.mg-modal-content::-webkit-scrollbar-track,
+.mg-clue-list::-webkit-scrollbar-track {
+  background: rgba(11, 11, 11, 0.12);
+  border-radius: 99px;
+}
+
+.mg-history-list::-webkit-scrollbar-thumb,
+.mg-suggestions::-webkit-scrollbar-thumb,
+.mg-modal-content::-webkit-scrollbar-thumb,
+.mg-clue-list::-webkit-scrollbar-thumb {
+  background: var(--mg-ink);
+  border-radius: 99px;
+}
+
+.mg-history-list,
+.mg-suggestions,
+.mg-modal-content,
+.mg-clue-list {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mg-ink) rgba(11, 11, 11, 0.12);
+}
+
+/* ── Main Unified Console Workspace ──────────────────────────────────────── */
+.mg-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   width: 100%;
   flex: 1;
 }
 
-.mg-workspace-grid.is-dossier-closed {
-  grid-template-columns: 350px minmax(0, 1fr);
-}
-
-.mg-col-dossier {
+/* ── Sleek, High-Visibility Case File Bar & Drawer ────────────────────────── */
+.mg-casefile-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  min-width: 0;
+  width: 100%;
+  border-radius: 12px;
+  border: 2.5px solid var(--mg-ink);
+  background: var(--mg-ink);
+  box-shadow: 3px 3px 0 rgba(11, 11, 11, 0.25);
+  overflow: hidden;
+  transition: box-shadow 0.12s ease;
 }
 
-/* ── On-Demand Case File Panel (Hidden by Default for Pure Mode) ─────────── */
-.mg-casefile {
-  border: 3px solid var(--mg-ink);
-  border-radius: 14px;
-  padding: 14px 16px;
-  background: rgba(11, 11, 11, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  box-shadow: 4px 4px 0 rgba(11, 11, 11, 0.22);
-  transition: background-color 0.15s ease;
-}
-
-.mg-casefile.is-sealed {
-  background: rgba(11, 11, 11, 0.14);
-  border-style: solid;
-}
-
-.mg-casefile-toggle {
+.mg-casefile-bar {
   width: 100%;
   background: var(--mg-ink);
   color: var(--mg-screen);
-  border: 2px solid var(--mg-ink);
-  border-radius: 9px;
-  padding: 10px 12px;
+  border: 0;
+  padding: 10px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  transition: background-color 0.12s ease, color 0.12s ease, transform 0.1s ease;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  user-select: none;
 }
 
-.mg-casefile-toggle:hover {
-  background: var(--mg-cream);
-  color: var(--mg-ink);
+.mg-casefile-bar:hover {
+  background: #1C1815;
 }
 
-.mg-casefile-toggle-left {
+.mg-casefile-bar.is-open {
+  border-bottom: 2px solid rgba(253, 227, 207, 0.2);
+}
+
+.mg-casefile-bar-left {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.mg-casefile-folder-icon {
-  font-size: 14px;
+.mg-casefile-bar-icon {
+  font-size: 15px;
   line-height: 1;
 }
 
-.mg-casefile-title {
-  margin: 0;
+.mg-casefile-bar-title {
   font-family: var(--mg-pixel);
-  font-size: 10px;
-  font-weight: 400;
-  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--mg-screen);
   letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.mg-casefile-toggle-right {
+.mg-casefile-bar-badge {
+  font-family: var(--mg-pixel);
+  font-size: 8px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgba(255, 85, 0, 0.18);
+  border: 1px solid var(--mg-screen);
+  color: var(--mg-screen);
+  letter-spacing: 0.04em;
+}
+
+.mg-casefile-bar-right {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.mg-pure-pill {
+.mg-pure-bonus-tag {
   font-family: var(--mg-pixel);
-  font-size: 7.5px;
-  padding: 4px 6px;
+  font-size: 8px;
+  padding: 4px 8px;
   border-radius: 4px;
   background: var(--mg-screen);
   color: var(--mg-ink);
   letter-spacing: 0.04em;
 }
 
-.mg-pure-pill-open {
-  background: rgba(11, 11, 11, 0.25);
-  color: var(--mg-ink);
-  border: 1px solid rgba(11, 11, 11, 0.4);
+.mg-pure-bonus-tag.is-revealed {
+  background: rgba(253, 227, 207, 0.18);
+  color: var(--mg-cream);
+  border: 1px solid rgba(253, 227, 207, 0.35);
 }
 
-.mg-casefile-toggle:hover .mg-pure-pill {
-  background: var(--mg-ink);
-  color: var(--mg-screen);
-}
-
-.mg-casefile-open-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 10px;
-  background: rgba(11, 11, 11, 0.12);
-  border-radius: 8px;
-  border: 1.5px dashed rgba(11, 11, 11, 0.35);
-  margin-bottom: 4px;
-}
-
-.mg-casefile-hint {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--mg-ink);
-  opacity: 0.85;
-}
-
-.mg-btn-rehide {
-  background: var(--mg-ink);
-  color: var(--mg-screen);
-  border: 1.5px solid var(--mg-ink);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-family: var(--mg-pixel);
-  font-size: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  cursor: pointer;
-  transition: background-color 0.12s, color 0.12s;
-}
-
-.mg-btn-rehide:hover {
-  background: var(--mg-cream);
-  color: var(--mg-ink);
-}
-
-.mg-panel-counter {
+.mg-casefile-bar-action {
   font-family: var(--mg-pixel);
   font-size: 8.5px;
-  color: currentColor;
-  opacity: 0.9;
-}
-
-.mg-casefile-action-tag {
-  font-family: var(--mg-pixel);
-  font-size: 8px;
+  color: var(--mg-cream);
   letter-spacing: 0.04em;
   opacity: 0.9;
 }
 
-/* Sealed Case File Body */
-.mg-casefile-sealed-body {
+/* ── Case File Expanded Drawer ── */
+.mg-casefile-drawer {
+  background: #14110F;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 6px 2px 2px;
-}
-
-.mg-casefile-sealed-text {
-  margin: 0;
-  font-size: 13.5px;
-  font-weight: 600;
-  line-height: 1.48;
-  color: var(--mg-ink);
-}
-
-.mg-btn-unseal {
-  width: 100%;
-  background: rgba(253, 227, 207, 0.88);
-  color: var(--mg-ink);
-  border: 2.5px solid var(--mg-ink);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-family: var(--mg-pixel);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  box-shadow: 3px 3px 0 var(--mg-ink);
-  transition: transform 0.1s ease, background-color 0.12s ease;
-}
-
-.mg-btn-unseal:hover {
-  background: #FFF7F0;
-  transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 var(--mg-ink);
-}
-
-/* Expanded Case File Rows */
-.mg-casefile-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 4px;
+  gap: 12px;
   animation: mg-fade-in 0.15s ease-out;
 }
 
-.mg-case-row {
+.mg-casefile-grid {
   display: grid;
-  grid-template-columns: 34px 76px 1fr;
-  align-items: center;
-  gap: 8px;
-  font-size: 14.5px;
-  padding: 3px 0;
-  border-bottom: 1px dashed rgba(11, 11, 11, 0.25);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px 16px;
 }
 
-.mg-case-row:last-child {
-  border-bottom: 0;
+.mg-case-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(253, 227, 207, 0.12);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 14px;
 }
 
 .mg-case-label {
@@ -1596,20 +1542,25 @@ p {
   font-size: 8px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  opacity: 0.82;
+  color: var(--mg-cream);
+  opacity: 0.7;
+  min-width: 64px;
 }
 
 .mg-case-val {
   font-weight: 700;
+  color: var(--mg-cream);
   line-height: 1.35;
   overflow-wrap: anywhere;
+  flex: 1;
 }
 
 .mg-case-val.is-unknown {
-  opacity: 0.45;
+  opacity: 0.4;
   font-family: var(--mg-pixel);
-  font-size: 9.5px;
+  font-size: 9px;
   letter-spacing: 0.1em;
+  color: var(--mg-cream);
 }
 
 /* ── Clue Ladder ───────────────────────────────────────────────────────── */
@@ -2053,7 +2004,7 @@ p {
   flex-wrap: wrap;
   align-items: center;
   gap: 6px;
-  padding-left: 36px;
+  padding-left: 76px;
 }
 
 .mg-badge {
@@ -2639,28 +2590,14 @@ p {
 
 /* Responsive Breakpoints */
 @media (max-width: 980px) {
-  .mg-workspace-grid,
-  .mg-workspace-grid.is-dossier-closed {
-    grid-template-columns: 1fr;
-  }
-
-  .mg-console-chassis {
-    padding: 14px 16px 12px;
-    border-radius: 42px;
-  }
-
-  .mg-chassis-grille {
-    display: none;
-  }
-
   .mg-console-frame {
-    padding: 18px;
-    border-radius: 48px;
+    padding: 14px 12px;
+    border-radius: 36px;
   }
 
   .mg-screen {
-    border-radius: 42px;
-    padding: 20px 22px 18px;
+    border-radius: 30px;
+    padding: 18px 20px 16px;
     min-height: auto;
   }
 
@@ -2672,7 +2609,8 @@ p {
 
 @media (max-width: 600px) {
   .mg-container {
-    padding: 8px 6px 14px;
+    min-height: 100dvh;
+    padding: 6px 4px 10px;
     justify-content: flex-start;
   }
 
@@ -2680,86 +2618,225 @@ p {
     width: 100%;
   }
 
-  .mg-console-chassis {
-    padding: 10px 10px 10px;
-    border-radius: 30px;
-  }
-
-  .mg-chassis-header {
-    padding: 2px 8px 4px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .mg-chassis-footer {
-    display: none;
-  }
-
   .mg-console-frame {
-    padding: 12px 10px;
-    border-radius: 34px;
+    padding: 8px 6px;
+    border-radius: 22px;
+    border-width: 2px;
   }
 
   .mg-screen {
-    padding: 16px 14px 16px;
-    border-radius: 28px;
+    padding: 12px 10px 10px;
+    border-radius: 18px;
+    border-width: 2px;
+    min-height: auto;
+    flex: 1;
+    gap: 10px;
   }
 
+  /* Single-row compact mobile topbar */
   .mg-screen-topbar {
-    flex-wrap: wrap;
-    padding-bottom: 10px;
+    flex-wrap: nowrap;
+    padding-bottom: 8px;
+    gap: 6px;
+    border-bottom-width: 2px;
+  }
+
+  .mg-status-left {
+    gap: 6px;
+  }
+
+  .mg-status-left svg:first-child {
+    display: none; /* Hide signal tower on tiny screens to preserve room */
   }
 
   .mg-logo-text {
-    font-size: 11px;
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
   }
 
   .mg-streak-pill {
-    order: 3;
-    width: 100%;
-    justify-content: center;
+    order: 0;
+    width: auto;
+    padding: 4px 8px;
+    font-size: 7.5px;
+    gap: 5px;
+  }
+
+  .mg-status-right {
+    gap: 6px;
   }
 
   .mg-date-badge {
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .mg-heading {
-    font-size: 12.5px;
-    line-height: 1.65;
+    font-size: 10.5px;
+    line-height: 1.45;
+    margin: 0;
+  }
+
+  /* Single-row mobile search bar */
+  .mg-search-form {
+    margin-bottom: 0;
   }
 
   .mg-search-bar {
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 6px;
   }
 
   .mg-combobox {
-    flex: 1 1 100%;
+    flex: 1;
+    min-width: 0;
   }
 
   .mg-input {
-    height: 46px;
-    font-size: 15px;
+    height: 42px;
+    font-size: 16px; /* Prevents iOS Safari auto-zoom */
+    padding: 0 10px;
+    border-width: 2px;
   }
 
   .mg-btn-guess {
-    flex: 1;
-    height: 46px;
-    font-size: 10.5px;
+    flex: 0 0 auto;
+    height: 42px;
+    padding: 0 12px;
+    font-size: 10px;
+    border-width: 2px;
   }
 
   .mg-btn-dots {
-    height: 46px;
-    width: 48px;
+    height: 42px;
+    width: 40px;
+    flex-shrink: 0;
+    border-width: 2px;
+  }
+
+  /* Mobile Case File */
+  .mg-casefile-bar {
+    padding: 8px 10px;
+  }
+
+  .mg-casefile-bar-left {
+    gap: 6px;
+  }
+
+  .mg-casefile-bar-title {
+    font-size: 9.5px;
+  }
+
+  .mg-casefile-bar-badge {
+    font-size: 7px;
+    padding: 2px 5px;
+  }
+
+  .mg-pure-bonus-tag {
+    font-size: 7px;
+    padding: 3px 5px;
+  }
+
+  .mg-casefile-bar-action {
+    font-size: 7.5px;
+  }
+
+  .mg-casefile-drawer {
+    padding: 10px 10px;
+  }
+
+  .mg-casefile-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .mg-case-row {
+    padding: 6px 8px;
+    font-size: 12.5px;
+    gap: 6px;
+  }
+
+  .mg-case-label {
+    min-width: 52px;
+    font-size: 7px;
+  }
+
+  /* Mobile Guess Rows */
+  .mg-history-header {
+    padding: 4px 6px 6px;
+    font-size: 8px;
+  }
+
+  .mg-history-list {
+    max-height: 290px;
+    padding-right: 2px;
+  }
+
+  .mg-guess-item {
+    padding: 8px 4px;
+    gap: 5px;
+  }
+
+  .mg-guess-main {
+    gap: 8px;
+  }
+
+  .mg-guess-left {
+    gap: 8px;
+  }
+
+  .mg-guess-index {
+    font-size: 8px;
+    min-width: 16px;
+  }
+
+  .mg-guess-thumb-wrap {
+    width: 26px;
+    height: 38px;
+  }
+
+  .mg-guess-title {
+    font-size: 13.5px;
   }
 
   .mg-proximity-bar {
     display: none;
   }
 
-  .mg-guess-title {
-    font-size: 14px;
+  .mg-guess-score {
+    font-size: 12px;
+    min-width: 36px;
+  }
+
+  .mg-hints {
+    padding-left: 54px;
+    gap: 4px;
+  }
+
+  .mg-badge {
+    height: 18px;
+    padding: 0 4px;
+    font-size: 7.5px;
+  }
+
+  /* Mobile Bottom Softkey Bar */
+  .mg-softkey-bar {
+    padding-top: 8px;
+    gap: 6px;
+    border-top-width: 2px;
+  }
+
+  .mg-softkey-btn,
+  .mg-softkey-center {
+    padding: 8px 4px;
+    font-size: 8.5px;
+  }
+
+  /* Mobile Modals */
+  .mg-modal-card {
+    width: 95vw;
+    max-height: 88vh;
+    padding: 16px 14px;
+    border-radius: 18px;
   }
 
   .mg-legend-grid,
