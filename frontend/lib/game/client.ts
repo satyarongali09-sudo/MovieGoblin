@@ -136,12 +136,22 @@ export async function searchCatalogCombined(
       `/moviegoblin/search?q=${encodeURIComponent(q)}`,
       { signal }
     );
+    const localByLabel = new Map<string, SearchSuggestion>();
+    for (const r of local.results) {
+      localByLabel.set(r.label, r);
+    }
+
     const seenLabels = new Set<string>();
     const mergedResults: SearchSuggestion[] = [];
     for (const item of [...(data.results ?? []), ...local.results]) {
-      if (!seenLabels.has(item.label)) {
-        seenLabels.add(item.label);
-        mergedResults.push(item);
+      const localMatch = localByLabel.get(item.label);
+      const enrichedItem: SearchSuggestion = {
+        ...item,
+        poster_url: item.poster_url || localMatch?.poster_url,
+      };
+      if (!seenLabels.has(enrichedItem.label)) {
+        seenLabels.add(enrichedItem.label);
+        mergedResults.push(enrichedItem);
       }
       if (mergedResults.length >= 40) break;
     }

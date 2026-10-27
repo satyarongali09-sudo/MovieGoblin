@@ -791,16 +791,7 @@ p {
 
 /* Base Page — Pitch Black Retro Console Environment */
 .mg-container {
-  background-color: #080605;
-  background-image:
-    radial-gradient(ellipse 85% 75% at 50% 48%, rgba(255, 85, 0, 0.08) 0%, rgba(14, 11, 10, 0.88) 55%, #050404 100%),
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 255, 255, 0.008) 0px,
-      rgba(255, 255, 255, 0.008) 1px,
-      transparent 1px,
-      transparent 4px
-    );
+  background-color: #060504;
   min-height: 100vh;
   color: var(--mg-cream);
   font-family: var(--mg-sans);
@@ -820,141 +811,47 @@ p {
   align-items: center;
 }
 
-/* ── Physical Curved Dark Bezel Framing the CRT Screen (From Reference Image) ── */
+/* ── Physical Curved Dark Bezel Framing the CRT Screen ── */
 .mg-console-frame {
   width: 100%;
   position: relative;
-  padding: 26px 28px;
-  background: linear-gradient(180deg, #1C1917 0%, #13100E 48%, #0C0A09 100%);
-  border-radius: 54px;
+  padding: 18px 20px;
+  background: #141210;
+  border-radius: 48px;
   border: 3px solid #231E1B;
   box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.95),
+    0 20px 50px rgba(0, 0, 0, 0.95),
     0 4px 14px rgba(0, 0, 0, 0.8),
-    inset 0 1.5px 1px rgba(255, 235, 220, 0.14),
-    inset 0 -3px 2px rgba(0, 0, 0, 0.85),
-    inset 0 12px 28px rgba(0, 0, 0, 0.92),
-    inset 0 -10px 24px rgba(0, 0, 0, 0.88),
-    inset 12px 0 24px rgba(0, 0, 0, 0.85),
-    inset -12px 0 24px rgba(0, 0, 0, 0.85);
-  filter:
-    drop-shadow(-1.5px 0 2px rgba(255, 45, 0, 0.35))
-    drop-shadow(1.5px 0 2px rgba(0, 150, 255, 0.28))
-    drop-shadow(0 0 20px rgba(255, 85, 0, 0.12));
+    inset 0 1px 1px rgba(255, 235, 220, 0.1);
 }
 
-/* Prominent 4-Sided Barrel-Curved Orange CRT Screen */
+/* Prominent Orange Console CRT Screen */
 .mg-screen {
   background-color: var(--mg-screen);
   color: var(--mg-ink);
-  border-radius: 46px;
+  border-radius: 38px;
+  border: 3px solid #050404;
   min-height: clamp(540px, 74vh, 760px);
-  padding: 22px 36px 20px;
+  padding: 22px 34px 20px;
   display: flex;
   flex-direction: column;
   position: relative;
-  isolation: isolate;
   box-shadow:
-    0 0 0 3px #050404,
-    inset 0 0 24px rgba(11, 11, 11, 0.35),
-    0 0 36px rgba(255, 85, 0, 0.22);
+    inset 0 0 20px rgba(11, 11, 11, 0.15),
+    0 0 24px rgba(255, 85, 0, 0.15);
   animation: mg-screen-on 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   transform-origin: center center;
 }
 
-/* Top & Bottom Convex Barrel Curve Arches */
-.mg-screen::before {
-  content: "";
-  position: absolute;
-  top: -14px;
-  bottom: -14px;
-  left: 36px;
-  right: 36px;
-  background-color: var(--mg-screen);
-  border-radius: 50% / 18px;
-  box-shadow: 0 0 0 3px #050404;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Left & Right Convex Barrel Curve Arches */
-.mg-screen::after {
-  content: "";
-  position: absolute;
-  left: -14px;
-  right: -14px;
-  top: 36px;
-  bottom: 36px;
-  background-color: var(--mg-screen);
-  border-radius: 18px / 50%;
-  box-shadow: 0 0 0 3px #050404;
-  z-index: -1;
-  pointer-events: none;
-}
-
-/* Inner Screen Content Surface with Visible RGB Phosphor Stripes & Horizontal Scanlines */
+/* Inner Screen Content Surface */
 .mg-screen-inner {
   position: relative;
-  z-index: 2;
+  z-index: 1;
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 18px;
-  border-radius: 38px;
-  background-image:
-    /* Restrained analog-glass brightness gradient: warm center phosphor emission with subtle edge falloff */
-    radial-gradient(ellipse 94% 84% at 50% 45%, rgba(255, 145, 60, 0.20) 0%, rgba(255, 85, 0, 0.05) 65%, rgba(14, 8, 4, 0.22) 100%),
-    /* Thin horizontal scanlines crossing the RGB pattern: 1px dark line every 3px */
-    repeating-linear-gradient(
-      0deg,
-      rgba(0, 0, 0, 0.20) 0px,
-      rgba(0, 0, 0, 0.20) 1px,
-      transparent 1px,
-      transparent 3px
-    ),
-    /* Fine RGB red, green, blue phosphor stripes with dark mask gap: repeating every 4px */
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 30, 0, 0.17) 0px,
-      rgba(255, 30, 0, 0.17) 1px,
-      rgba(0, 240, 70, 0.12) 1px,
-      rgba(0, 240, 70, 0.12) 2px,
-      rgba(0, 140, 255, 0.16) 2px,
-      rgba(0, 140, 255, 0.16) 3px,
-      rgba(0, 0, 0, 0.30) 3px,
-      rgba(0, 0, 0, 0.30) 4px
-    );
-}
-
-/* Analog Curved CRT Glass Faceplate: Specular Glare Sheen, Edge Rim Highlight & Vignette */
-.mg-screen-inner::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 38px;
-  pointer-events: none;
-  z-index: 5;
-  background:
-    /* Upper-left diagonal glass specular glare sheen from ambient lighting */
-    linear-gradient(
-      130deg,
-      rgba(255, 255, 255, 0.09) 0%,
-      rgba(255, 255, 255, 0.035) 18%,
-      rgba(255, 255, 255, 0.005) 34%,
-      transparent 52%
-    ),
-    /* Analog tube glass perimeter vignette */
-    radial-gradient(
-      ellipse at 50% 50%,
-      transparent 68%,
-      rgba(16, 8, 4, 0.18) 100%
-    );
-  box-shadow:
-    inset 0 1.5px 2px rgba(255, 240, 225, 0.32),
-    inset 0 -2px 3px rgba(0, 0, 0, 0.35),
-    inset 1.5px 0 2px rgba(255, 225, 205, 0.20),
-    inset -1.5px 0 2px rgba(0, 0, 0, 0.28);
 }
 
 .mg-screen-pulse {
@@ -992,9 +889,6 @@ p {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   line-height: 1;
-  text-shadow:
-    -0.6px 0 0 rgba(255, 30, 0, 0.4),
-    0.6px 0 0 rgba(0, 150, 255, 0.32);
 }
 
 /* Creative Interactive Streak Pill Button */
@@ -2079,6 +1973,11 @@ p {
 }
 
 .mg-suggestion-thumb-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 11px;
   color: var(--mg-cream);
   user-select: none;
@@ -2804,20 +2703,6 @@ p {
   .mg-screen {
     padding: 16px 14px 16px;
     border-radius: 28px;
-  }
-
-  .mg-screen::before {
-    top: -10px;
-    bottom: -10px;
-    left: 22px;
-    right: 22px;
-  }
-
-  .mg-screen::after {
-    left: -10px;
-    right: -10px;
-    top: 22px;
-    bottom: 22px;
   }
 
   .mg-screen-topbar {

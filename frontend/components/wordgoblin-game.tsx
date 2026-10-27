@@ -24,7 +24,7 @@ import {
   submitAttribute,
   submitGuess,
 } from "@/lib/game/client";
-import { searchLocalCatalog } from "@/lib/game/local-search";
+import { searchLocalCatalog, findLocalPoster } from "@/lib/game/local-search";
 import { deriveCaseFile, describeYearWindow } from "@/lib/game/casefile";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -75,6 +75,7 @@ function attrBadgeCode(kind: AttributeKind): string {
 
 function AnswerCard({ answer }: { answer: RevealedAnswer }) {
   const [imgFailed, setImgFailed] = useState(false);
+  const posterUrl = answer.poster_url || findLocalPoster(answer.title, answer.year);
   const facts = [
     answer.director ? { k: "Director", v: answer.director } : null,
     answer.cast?.length ? { k: "Starring", v: answer.cast.slice(0, 4).join(", ") } : null,
@@ -90,12 +91,13 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
   return (
     <div className="mg-answer">
       <div className="mg-answer-layout">
-        {answer.poster_url && !imgFailed ? (
+        {posterUrl && !imgFailed ? (
           <div className="mg-answer-poster-frame">
             <img
-              src={answer.poster_url}
+              src={posterUrl}
               alt={answer.title}
               className="mg-answer-poster"
+              referrerPolicy="no-referrer"
               onError={() => setImgFailed(true)}
             />
           </div>
@@ -176,10 +178,33 @@ export function WordGoblinGame() {
       setDailyGame(daily);
       let state = loadDayState(daily.date);
 
+      // Backfill any missing poster URLs from local catalog
+      state = {
+        ...state,
+        guesses: state.guesses.map((g) => ({
+          ...g,
+          poster_url: g.poster_url || findLocalPoster(g.matchedTitle || g.guess),
+        })),
+        revealedAnswer: state.revealedAnswer
+          ? {
+              ...state.revealedAnswer,
+              poster_url:
+                state.revealedAnswer.poster_url ||
+                findLocalPoster(state.revealedAnswer.title, state.revealedAnswer.year),
+            }
+          : undefined,
+      };
+
       if (state.surrendered && !state.solved && !state.revealedAnswer) {
         try {
           const { revealedAnswer } = await giveUp();
-          state = { ...state, revealedAnswer };
+          const enrichedAnswer = {
+            ...revealedAnswer,
+            poster_url:
+              revealedAnswer.poster_url ||
+              findLocalPoster(revealedAnswer.title, revealedAnswer.year),
+          };
+          state = { ...state, revealedAnswer: enrichedAnswer };
           saveDayState(state);
         } catch {
           // ignore
@@ -444,7 +469,10 @@ export function WordGoblinGame() {
         return;
       }
 
-      const poster = response.poster_url || choice.poster_url;
+      const poster =
+        response.poster_url ||
+        choice.poster_url ||
+        findLocalPoster(response.matchedTitle || choice.label, choice.year);
 
       const result: GuessResult = {
         guess: response.matchedTitle || choice.label,
@@ -457,11 +485,20 @@ export function WordGoblinGame() {
       };
 
       const solved = response.isCorrect;
+      const revealed = response.revealedAnswer
+        ? {
+            ...response.revealedAnswer,
+            poster_url:
+              response.revealedAnswer.poster_url ||
+              findLocalPoster(response.revealedAnswer.title, response.revealedAnswer.year),
+          }
+        : dayState.revealedAnswer;
+
       const newState: DayState = {
         ...dayState,
         guesses: [...dayState.guesses, result],
         solved,
-        revealedAnswer: response.revealedAnswer || dayState.revealedAnswer,
+        revealedAnswer: revealed,
       };
 
       setDayState(newState);
@@ -520,7 +557,13 @@ export function WordGoblinGame() {
     if (!dayState) return;
     try {
       const { revealedAnswer } = await giveUp();
-      const newState: DayState = { ...dayState, surrendered: true, revealedAnswer };
+      const enrichedAnswer = {
+        ...revealedAnswer,
+        poster_url:
+          revealedAnswer.poster_url ||
+          findLocalPoster(revealedAnswer.title, revealedAnswer.year),
+      };
+      const newState: DayState = { ...dayState, surrendered: true, revealedAnswer: enrichedAnswer };
       setDayState(newState);
       saveDayState(newState);
       recordGiveUp();
@@ -810,27 +853,35 @@ export function WordGoblinGame() {
                                       >
                                         <div className="mg-suggestion-left-wrap">
                                           <div className="mg-suggestion-thumb-wrap">
-                                            {s.poster_url ? (
-                                              <img
-                                                src={s.poster_url}
-                                                alt=""
-                                                className="mg-suggestion-thumb"
-                                                loading="lazy"
-                                                onError={(e) => {
-                                                  const target = e.currentTarget as HTMLElement;
-                                                  target.style.display = "none";
-                                                  const fallback = target.nextElementSibling as HTMLElement | null;
-                                                  if (fallback) fallback.style.display = "flex";
-                                                }}
-                                              />
-                                            ) : null}
-                                            <span
-                                              className="mg-suggestion-thumb-fallback"
-                                              aria-hidden="true"
-                                              style={{ display: s.poster_url ? "none" : "flex" }}
-                                            >
-                                              🎬
-                                            </span>
+                                            {(() => {
+                                              const posterSrc = s.poster_url || findLocalPoster(s.label, s.year);
+                                              return (
+                                                <>
+                                                  {posterSrc ? (
+                                                    <img
+                                                      src={posterSrc}
+                                                      alt=""
+                                                      className="mg-suggestion-thumb"
+                                                      loading="lazy"
+                                                      referrerPolicy="no-referrer"
+                                                      onError={(e) => {
+                                                        const target = e.currentTarget as HTMLElement;
+                                                        target.style.display = "none";
+                                                        const fallback = target.nextElementSibling as HTMLElement | null;
+                                                        if (fallback) fallback.style.display = "flex";
+                                                      }}
+                                                    />
+                                                  ) : null}
+                                                  <span
+                                                    className="mg-suggestion-thumb-fallback"
+                                                    aria-hidden="true"
+                                                    style={{ display: posterSrc ? "none" : "flex" }}
+                                                  >
+                                                    🎬
+                                                  </span>
+                                                </>
+                                              );
+                                            })()}
                                           </div>
                                           <div className="mg-suggestion-main">
                                             <span className="mg-suggestion-title">{s.title}</span>
@@ -1074,27 +1125,35 @@ export function WordGoblinGame() {
                                   <div className="mg-guess-left">
                                     <span className="mg-guess-index">{String(originalIndex).padStart(2, "0")}</span>
                                     <div className="mg-guess-thumb-wrap">
-                                      {item.poster_url ? (
-                                        <img
-                                          src={item.poster_url}
-                                          alt=""
-                                          className="mg-guess-thumb"
-                                          loading="lazy"
-                                          onError={(e) => {
-                                            const target = e.currentTarget as HTMLElement;
-                                            target.style.display = "none";
-                                            const fallback = target.nextElementSibling as HTMLElement | null;
-                                            if (fallback) fallback.style.display = "flex";
-                                          }}
-                                        />
-                                      ) : null}
-                                      <div
-                                        className="mg-guess-thumb-fallback"
-                                        aria-hidden="true"
-                                        style={{ display: item.poster_url ? "none" : "flex" }}
-                                      >
-                                        🎬
-                                      </div>
+                                      {(() => {
+                                        const guessPoster = item.poster_url || findLocalPoster(item.matchedTitle || item.guess);
+                                        return (
+                                          <>
+                                            {guessPoster ? (
+                                              <img
+                                                src={guessPoster}
+                                                alt=""
+                                                className="mg-guess-thumb"
+                                                loading="lazy"
+                                                referrerPolicy="no-referrer"
+                                                onError={(e) => {
+                                                  const target = e.currentTarget as HTMLElement;
+                                                  target.style.display = "none";
+                                                  const fallback = target.nextElementSibling as HTMLElement | null;
+                                                  if (fallback) fallback.style.display = "flex";
+                                                }}
+                                              />
+                                            ) : null}
+                                            <div
+                                              className="mg-guess-thumb-fallback"
+                                              aria-hidden="true"
+                                              style={{ display: guessPoster ? "none" : "flex" }}
+                                            >
+                                              🎬
+                                            </div>
+                                          </>
+                                        );
+                                      })()}
                                     </div>
                                     <span className="mg-guess-title" title={item.matchedTitle || item.guess}>
                                       {item.matchedTitle || item.guess}

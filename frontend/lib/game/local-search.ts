@@ -50,6 +50,42 @@ function buildRowAliases(m: CompactMovie): string[] {
 }
 
 /**
+ * Resolves a movie's poster URL from the local indexed catalog by title or "Title (Year)".
+ */
+export function findLocalPoster(titleOrLabel: string, year?: number): string | undefined {
+  if (!titleOrLabel) return undefined;
+  let title = titleOrLabel.trim();
+  let yr = year;
+  const match = title.match(/^(.*?)(?:\s*\((\d{4})\))?$/);
+  if (match) {
+    title = match[1].trim();
+    if (!yr && match[2]) {
+      yr = parseInt(match[2], 10);
+    }
+  }
+  const normStrip = normalizeStripArticles(title);
+  const normKeep = normalizeKeepArticles(title);
+
+  if (yr) {
+    for (let i = 0; i < MOVIES.length; i++) {
+      const m = MOVIES[i];
+      if (m.y === yr && (normalizeStripArticles(m.t) === normStrip || normalizeKeepArticles(m.t) === normKeep)) {
+        if (m.pu) return m.pu;
+      }
+    }
+  }
+
+  for (let i = 0; i < MOVIES.length; i++) {
+    const m = MOVIES[i];
+    if (normalizeStripArticles(m.t) === normStrip || normalizeKeepArticles(m.t) === normKeep) {
+      if (m.pu) return m.pu;
+    }
+  }
+
+  return undefined;
+}
+
+/**
  * Instant client-side search across all 6,154 combined movies + attributes (Director, Actor, Year, Genre, Language).
  */
 export function searchLocalCatalog(query: string, movieLimit = 40, attrLimit = 8): SearchCatalogResponse {

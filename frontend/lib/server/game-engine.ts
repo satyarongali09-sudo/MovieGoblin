@@ -135,8 +135,8 @@ export function metaKey(title: string, year: number): string {
   return `${normalizeTitle(title)}::${year}`;
 }
 
-const catalogMap = new Map<string, { t: string; y: number; d?: string; l?: string; o?: string }>();
-for (const m of (catalogIndex.movies ?? []) as Array<{ t: string; y: number; d?: string; l?: string; o?: string }>) {
+const catalogMap = new Map<string, { t: string; y: number; d?: string; l?: string; o?: string; pu?: string }>();
+for (const m of (catalogIndex.movies ?? []) as Array<{ t: string; y: number; d?: string; l?: string; o?: string; pu?: string }>) {
   if (m.t && m.y) {
     catalogMap.set(metaKey(m.t, m.y), m);
   }
@@ -307,6 +307,7 @@ export function getMovieMeta(movie: { title: string; year: number }): MovieMeta 
     ...(catItem?.d ? { director: catItem.d } : {}),
     ...(catItem?.l ? { language: catItem.l } : {}),
     ...(catItem?.o ? { originalTitle: catItem.o } : {}),
+    ...(catItem?.pu ? { poster_url: catItem.pu } : {}),
   };
 
   const baseMeta: MovieMeta = csvMeta
@@ -317,6 +318,7 @@ export function getMovieMeta(movie: { title: string; year: number }): MovieMeta 
         director: csvMeta.director ?? fallbackMeta.director,
         language: csvMeta.language ?? fallbackMeta.language,
         originalTitle: csvMeta.originalTitle ?? fallbackMeta.originalTitle,
+        poster_url: csvMeta.poster_url ?? fallbackMeta.poster_url,
       }
     : fallbackMeta;
 
@@ -331,6 +333,7 @@ export function getMovieMeta(movie: { title: string; year: number }): MovieMeta 
       keywords: curated.keywords?.length ? curated.keywords : baseMeta.keywords,
       rating: curated.rating ?? baseMeta.rating,
       runtime: curated.runtime ?? baseMeta.runtime,
+      poster_url: curated.poster_url ?? baseMeta.poster_url,
     };
   }
 

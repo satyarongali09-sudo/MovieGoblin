@@ -34,7 +34,7 @@ export type {
  * deduplicating by normalized title + year so primary (Supabase) records take precedence.
  */
 export function mergeCatalogWithCombinedCsv(primaryMovies: CatalogMovie[]): CatalogMovie[] {
-  const { movies: csvMovies } = loadCombinedCsvDataset();
+  const { movies: csvMovies, metaByKey } = loadCombinedCsvDataset();
   if (csvMovies.length === 0) return primaryMovies;
 
   const seenKey = new Set<string>();
@@ -43,7 +43,10 @@ export function mergeCatalogWithCombinedCsv(primaryMovies: CatalogMovie[]): Cata
   for (const m of primaryMovies) {
     const key = `${normalizeTitle(m.title)}::${m.year}`;
     seenKey.add(key);
-    merged.push(m);
+    merged.push({
+      ...m,
+      poster_url: m.poster_url || metaByKey[key]?.poster_url,
+    });
   }
 
   for (const cm of csvMovies) {

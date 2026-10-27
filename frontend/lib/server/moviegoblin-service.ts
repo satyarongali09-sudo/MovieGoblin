@@ -182,13 +182,22 @@ export class NextSupabaseMovieGoblinRepository implements IMovieGoblinRepository
       throw new CatalogUnavailableError("No active movies found in database.");
     }
 
+    const bundledMap = new Map<string, CatalogMovie>();
+    for (const bm of bundled) {
+      bundledMap.set(`${normalizeTitle(bm.title)}::${bm.year}`, bm);
+    }
+
     const seenKey = new Set<string>();
     const merged: CatalogMovie[] = [];
 
     for (const m of data as CatalogMovie[]) {
       const key = `${normalizeTitle(m.title)}::${m.year}`;
       seenKey.add(key);
-      merged.push(m);
+      const bundledMatch = bundledMap.get(key);
+      merged.push({
+        ...m,
+        poster_url: m.poster_url || bundledMatch?.poster_url,
+      });
     }
 
     for (const bm of bundled) {
