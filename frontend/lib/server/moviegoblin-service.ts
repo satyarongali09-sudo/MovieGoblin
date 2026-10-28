@@ -554,7 +554,14 @@ export class MovieGoblinService {
 
     const hints = buildGuessHints(candidate, targetMovie);
     const candidatePoster = candidate.poster_url || getMovieMeta(candidate).poster_url;
-    const isExactMatch = candidate.id === targetMovie.id;
+    const isExactMatch =
+      candidate.id === targetMovie.id ||
+      (candidate.year === targetMovie.year &&
+        (normalizeTitle(candidate.title) === normalizeTitle(targetMovie.title) ||
+          normalizeSpelling(normalizeTitle(candidate.title)) ===
+            normalizeSpelling(normalizeTitle(targetMovie.title)) ||
+          targetMovie.aliases.map(normalizeTitle).includes(normalizeTitle(candidate.title)) ||
+          candidate.aliases.map(normalizeTitle).includes(normalizeTitle(targetMovie.title))));
 
     if (isExactMatch) {
       return {

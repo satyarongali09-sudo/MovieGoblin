@@ -761,7 +761,16 @@ export function computeMatchPercent(
   target: CatalogMovie,
   cosine: number
 ): number {
-  if (guess.id === target.id) return 100;
+  if (
+    guess.id === target.id ||
+    (guess.year === target.year &&
+      (normalizeTitle(guess.title) === normalizeTitle(target.title) ||
+        normalizeSpelling(normalizeTitle(guess.title)) === normalizeSpelling(normalizeTitle(target.title)) ||
+        target.aliases.map(normalizeTitle).includes(normalizeTitle(guess.title)) ||
+        guess.aliases.map(normalizeTitle).includes(normalizeTitle(target.title))))
+  ) {
+    return 100;
+  }
 
   const hints = buildGuessHints(guess, target);
   const gm = getMovieMeta(guess);

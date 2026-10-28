@@ -513,6 +513,18 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "vote_count": 12003,
     "vote_average": 8.2
   },
+  "mirchi::2013": {
+    "director": "Koratala Siva",
+    "cast": [
+      "Prabhas",
+      "Anushka Shetty",
+      "Richa Gangopadhyay",
+      "Sathyaraj",
+      "Nadhiya"
+    ],
+    "language": "Telugu",
+    "runtime": 155
+  },
   "pokiri::2006": {
     "cast": [],
     "language": "Telugu",

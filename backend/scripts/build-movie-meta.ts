@@ -13,7 +13,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { normalizeTitle } from "../src/services/moviegoblin.js";
+import { normalizeTitle, normalizeSpelling } from "../src/services/moviegoblin.js";
 import type { MovieMeta } from "../src/services/moviegoblin-meta.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -293,6 +293,12 @@ async function main() {
       language: "Telugu",
       runtime: 151,
     },
+    "mirchi::2013": {
+      director: "Koratala Siva",
+      cast: ["Prabhas", "Anushka Shetty", "Richa Gangopadhyay", "Sathyaraj", "Nadhiya"],
+      language: "Telugu",
+      runtime: 155,
+    },
     "maryada ramanna::2010": {
       director: "S. S. Rajamouli",
       cast: ["Sunil", "Saloni Aswani", "Nagineedu", "Supreeth"],
@@ -388,6 +394,7 @@ async function main() {
 
   // 3. Emit a unified compact frontend catalog index covering all ~13,163 movies (curated + combined CSV + 9000plus)
   const seenFrontendKeys = new Set<string>();
+  const seenFoldedKeys = new Set<string>();
   const frontendMovies: Array<{
     t: string;
     y: number;
@@ -402,11 +409,14 @@ async function main() {
   const genresSet = new Set<string>();
   const languagesSet = new Set<string>();
 
-  // A. Curated base movies
+  // A. Curated base movies (canonical IMDb titles win)
   for (const m of prepared as Array<{ title: string; year: number; genres?: string[] }>) {
-    const key = `${normalizeTitle(m.title)}::${m.year}`;
-    if (seenFrontendKeys.has(key)) continue;
+    const norm = normalizeTitle(m.title);
+    const key = `${norm}::${m.year}`;
+    const foldedKey = `${normalizeSpelling(norm)}::${m.year}`;
+    if (seenFrontendKeys.has(key) || seenFoldedKeys.has(foldedKey)) continue;
     seenFrontendKeys.add(key);
+    seenFoldedKeys.add(foldedKey);
     const meta = out[key];
     const poster = meta?.poster_url || map9000.get(key)?.poster || POSTER_OVERRIDES[key];
 
@@ -434,8 +444,10 @@ async function main() {
     const norm = normalizeTitle(title);
     if (!norm) continue;
     const key = `${norm}::${year}`;
-    if (seenFrontendKeys.has(key)) continue;
+    const foldedKey = `${normalizeSpelling(norm)}::${year}`;
+    if (seenFrontendKeys.has(key) || seenFoldedKeys.has(foldedKey)) continue;
     seenFrontendKeys.add(key);
+    seenFoldedKeys.add(foldedKey);
 
     const override = OVERRIDES[key];
     const director = override?.director || (cols[idx("director")] || "").split("|")[0].trim() || undefined;
@@ -471,8 +483,11 @@ async function main() {
 
   // C. New non-overlapping movies from 9000plus.csv (~7,010 films)
   for (const [key, entry] of map9000.entries()) {
-    if (seenFrontendKeys.has(key)) continue;
+    const [norm, year] = key.split("::");
+    const foldedKey = `${normalizeSpelling(norm)}::${year}`;
+    if (seenFrontendKeys.has(key) || seenFoldedKeys.has(foldedKey)) continue;
     seenFrontendKeys.add(key);
+    seenFoldedKeys.add(foldedKey);
 
     entry.genres.forEach((g) => genresSet.add(g));
     if (entry.lang) languagesSet.add(entry.lang);
