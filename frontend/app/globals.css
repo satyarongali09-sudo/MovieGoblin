@@ -2938,13 +2938,33 @@ p {
   flex-wrap: wrap;
 }
 
+.mg-sticker-board-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .mg-sticker-board-kicker {
   font-family: var(--mg-pixel);
-  font-size: 7.5px;
-  letter-spacing: 0.06em;
-  color: var(--mg-cream);
-  opacity: 0.85;
+  font-size: 8px;
+  letter-spacing: 0.05em;
+  color: #FFFFFF;
   text-transform: uppercase;
+}
+
+.mg-sticker-board-datetime {
+  font-family: var(--mg-pixel);
+  font-size: 7.5px;
+  letter-spacing: 0.04em;
+  color: var(--mg-screen);
+}
+
+.mg-sticker-board-subbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mg-sticker-board-status {
@@ -2957,6 +2977,34 @@ p {
   border: 1px solid var(--mg-screen);
   color: var(--mg-screen);
   text-transform: uppercase;
+}
+
+.mg-sticker-pill-share {
+  background: var(--mg-screen);
+  color: var(--mg-ink);
+  border: 1.5px solid var(--mg-ink);
+  border-radius: 5px;
+  font-family: var(--mg-pixel);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  cursor: pointer;
+  box-shadow: 1.5px 1.5px 0 var(--mg-ink);
+  transition: transform 0.1s ease, filter 0.12s ease;
+}
+
+.mg-sticker-pill-share:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.mg-sticker-deck-hint {
+  font-family: var(--mg-pixel);
+  font-size: 6.5px;
+  color: rgba(253, 227, 207, 0.65);
+  letter-spacing: 0.04em;
 }
 
 .mg-sticker-row {
@@ -3145,6 +3193,129 @@ p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Sticker Deck Dedicated Action Bar & Feedback */
+.mg-sticker-action-bar {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 7px;
+  width: 100%;
+  padding-top: 4px;
+}
+
+.mg-sticker-btn-share {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--mg-screen);
+  color: var(--mg-ink);
+  border: 2px solid #FFFFFF;
+  border-radius: 8px;
+  font-family: var(--mg-pixel);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000000;
+  transition: all 0.12s ease;
+}
+
+.mg-sticker-btn-share:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 3px 3px 0 #000000;
+  filter: brightness(1.08);
+}
+
+.mg-sticker-btn-sub {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--mg-ink);
+  border: 2px solid #000000;
+  border-radius: 8px;
+  font-family: var(--mg-pixel);
+  font-size: 7.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000000;
+  transition: all 0.12s ease;
+}
+
+.mg-sticker-btn-sub:hover:not(:disabled) {
+  background: #FFFFFF;
+  transform: translateY(-1px);
+}
+
+.mg-sticker-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #000000;
+  color: var(--mg-screen);
+  border: 1.5px solid var(--mg-screen);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: var(--mg-pixel);
+  font-size: 8px;
+  line-height: 1.4;
+  box-shadow: 2px 2px 0 var(--mg-screen);
+  animation: mg-fade-in 0.15s ease-out;
+}
+
+/* ── Global Mini Die-Cut Sticker Badges (Used Across History, Header, Case File) ── */
+.mg-mini-sticker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mg-pixel);
+  font-size: 7px;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 5px;
+  border: 1.5px solid #FFFFFF;
+  box-shadow:
+    0 0 0 1px #000000,
+    1.5px 1.5px 0 rgba(0, 0, 0, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mg-mini-sticker-pass {
+  background: #111111;
+  color: #FF9D00;
+  font-weight: 700;
+}
+
+.mg-mini-sticker-hot {
+  background: #FF5500;
+  color: #FFFFFF;
+  border-color: #FFFFFF;
+}
+
+.mg-mini-sticker-classified {
+  background: #D32F2F;
+  color: #FFFFFF;
+  border-color: #FFFFFF;
+  font-size: 6.5px;
+  padding: 2.5px 5px;
+}
+
+.mg-mini-sticker-aura {
+  background: #FFFFFF;
+  color: #000000;
+  border-color: #FFFFFF;
+  font-size: 7.5px;
+  margin-left: 6px;
 }
 
 /* ── Modals (Operator's Manual, Streak & Point Stats, Give Up) ─────────── */
@@ -4175,6 +4346,42 @@ p {
 
   .mg-telemetry-val {
     font-size: 10.5px;
+  }
+
+  .mg-sticker-board-subbar {
+    gap: 6px;
+  }
+
+  .mg-sticker-pill-share {
+    font-size: 6px;
+    padding: 2.5px 6px;
+  }
+
+  .mg-sticker-board-datetime {
+    font-size: 6.5px;
+  }
+
+  .mg-sticker-action-bar {
+    grid-template-columns: 1.3fr 1fr 1fr;
+    gap: 5px;
+    padding-top: 2px;
+  }
+
+  .mg-sticker-btn-share {
+    height: 34px;
+    font-size: 7px;
+    padding: 0 4px;
+  }
+
+  .mg-sticker-btn-sub {
+    height: 34px;
+    font-size: 6.8px;
+    padding: 0 4px;
+  }
+
+  .mg-mini-sticker {
+    font-size: 6px;
+    padding: 2px 4px;
   }
 
   /* Mobile Responsive Two-Sided Score Card (.mg-sc) */

@@ -32,6 +32,7 @@ import {
   copyCardImageToClipboard,
   downloadCardImage,
   generateCollectorShowcaseBlob,
+  generateStickerDeckBlob,
 } from "@/lib/game/card-image";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -155,9 +156,96 @@ type VictoryStickerDeckProps = {
   solved: boolean;
   guessCount: number;
   cluesUsed: number;
+  dateLabel: string;
+  answer?: RevealedAnswer;
 };
 
-function VictoryStickerDeck({ breakdown, solved, guessCount, cluesUsed }: VictoryStickerDeckProps) {
+function VictoryStickerDeck({
+  breakdown,
+  solved,
+  guessCount,
+  cluesUsed,
+  dateLabel,
+  answer,
+}: VictoryStickerDeckProps) {
+  const [isSharing, setIsSharing] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => {
+      setToastMsg((cur) => (cur === msg ? null : cur));
+    }, 4500);
+  };
+
+  const handleShareDeck = async () => {
+    setIsSharing(true);
+    try {
+      const res = await shareCardImage({
+        breakdown,
+        answer,
+        dateLabel,
+        solved,
+        format: "sticker",
+      });
+      if (res === "copied") {
+        showToast("✓ Sticker deck image copied to clipboard! Paste as sticker into Stories or chat.");
+      } else if (res === "downloaded") {
+        showToast("✓ Sticker deck saved as PNG image!");
+      } else {
+        showToast("✓ Sticker deck shared!");
+      }
+    } catch (e) {
+      console.warn("Share deck failed:", e);
+      showToast("Share failed. Tap 'Copy Sticker' instead.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleCopyDeck = async () => {
+    setIsSharing(true);
+    try {
+      const ok = await copyCardImageToClipboard({
+        breakdown,
+        answer,
+        dateLabel,
+        solved,
+        format: "sticker",
+      });
+      if (ok) {
+        showToast("✓ Sticker deck copied to clipboard! Paste as sticker into Instagram Stories or chat.");
+      } else {
+        showToast("✓ Sticker deck saved as PNG image!");
+      }
+    } catch (e) {
+      console.warn("Copy deck failed:", e);
+      showToast("Copy failed. Tap 'PNG' to download.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleSaveDeck = async () => {
+    setIsSharing(true);
+    try {
+      const blob = await generateStickerDeckBlob({
+        breakdown,
+        answer,
+        dateLabel,
+        solved,
+        format: "sticker",
+      });
+      downloadCardImage(blob, `MovieGoblin-${dateLabel}-StickerDeck.png`);
+      showToast("✓ Sticker deck saved as high-res PNG!");
+    } catch (e) {
+      console.warn("Save deck failed:", e);
+      showToast("Could not download sticker image.");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   const auraPoints = solved ? `+${breakdown.total}` : "+000";
   const speedBadge = !solved
     ? "💀 SIGNAL LOST"
@@ -187,36 +275,76 @@ function VictoryStickerDeck({ breakdown, solved, guessCount, cluesUsed }: Victor
 
   return (
     <div className="mg-sticker-board" aria-label="Arcade achievement stickers and case telemetry">
+      {/* Header bar with Brand and Date/Time */}
       <div className="mg-sticker-board-bar">
-        <span className="mg-sticker-board-kicker">★ ARCADE STICKER DECK // CASE TELEMETRY</span>
+        <div className="mg-sticker-board-brand">
+          <span className="mg-sticker-board-kicker">★ MOVIEGOBLIN.VERCEL.APP // STICKER DECK</span>
+        </div>
+        <span className="mg-sticker-board-datetime">{dateLabel} · AUTHENTICATED</span>
+      </div>
+
+      {/* Sub-bar with points respect and quick share pill */}
+      <div className="mg-sticker-board-subbar">
         <span className="mg-sticker-board-status">
           {solved ? `RESPECT +${breakdown.total} PTS` : "STATUS: GAME OVER"}
         </span>
+        <button
+          type="button"
+          className="mg-sticker-pill-share"
+          disabled={isSharing}
+          onClick={() => void handleShareDeck()}
+        >
+          {isSharing ? "⏳ CAPTURING..." : "📸 SHARE STICKER CARD"}
+        </button>
       </div>
 
       {/* Die-Cut Collector Stickers Row */}
       <div className="mg-sticker-row">
         {/* Sticker 1: GTA Mission Passed! Respect + OR 8-Bit Arcade Game Over */}
         {solved ? (
-          <div className="mg-diecut-sticker mg-sticker-mission" title="Mission Passed! Respect +">
+          <div
+            className="mg-diecut-sticker mg-sticker-mission"
+            title="Mission Passed! Respect +"
+            onClick={() => void handleCopyDeck()}
+            role="button"
+            tabIndex={0}
+          >
             <span className="mg-mission-line1">MISSION PASSED!</span>
             <span className="mg-mission-line2">RESPECT +</span>
           </div>
         ) : (
-          <div className="mg-diecut-sticker mg-sticker-gameover" title="Game Over">
+          <div
+            className="mg-diecut-sticker mg-sticker-gameover"
+            title="Game Over"
+            onClick={() => void handleCopyDeck()}
+            role="button"
+            tabIndex={0}
+          >
             <span className="mg-gameover-line">GAME</span>
             <span className="mg-gameover-line">OVER</span>
           </div>
         )}
 
         {/* Sticker 2: +1000 AURA 8-Bit Pixel Die-Cut Sticker */}
-        <div className="mg-diecut-sticker mg-sticker-aura" title={`${auraPoints} AURA`}>
+        <div
+          className="mg-diecut-sticker mg-sticker-aura"
+          title={`${auraPoints} AURA (Tap to copy)`}
+          onClick={() => void handleCopyDeck()}
+          role="button"
+          tabIndex={0}
+        >
           <span className="mg-aura-num">{auraPoints}</span>
           <span className="mg-aura-word">AURA</span>
         </div>
 
         {/* Sticker 3: 8-Bit Blocky TNT Die-Cut Sticker */}
-        <div className="mg-diecut-sticker mg-sticker-pixel" title="Blocky TNT Explosive Sticker">
+        <div
+          className="mg-diecut-sticker mg-sticker-pixel"
+          title="Blocky TNT Explosive Sticker (Tap to copy)"
+          onClick={() => void handleCopyDeck()}
+          role="button"
+          tabIndex={0}
+        >
           <svg
             className="mg-pixel-sticker-svg"
             viewBox="0 0 16 16"
@@ -251,7 +379,13 @@ function VictoryStickerDeck({ breakdown, solved, guessCount, cluesUsed }: Victor
         </div>
 
         {/* Sticker 4: 8-Bit Blocky Diamond Sword Die-Cut Sticker */}
-        <div className="mg-diecut-sticker mg-sticker-pixel" title={swordLabel}>
+        <div
+          className="mg-diecut-sticker mg-sticker-pixel"
+          title={`${swordLabel} (Tap to copy)`}
+          onClick={() => void handleCopyDeck()}
+          role="button"
+          tabIndex={0}
+        >
           <svg
             className="mg-pixel-sticker-svg"
             viewBox="0 0 16 16"
@@ -298,6 +432,46 @@ function VictoryStickerDeck({ breakdown, solved, guessCount, cluesUsed }: Victor
           </strong>
         </div>
       </div>
+
+      {/* Interactive Quick-Share Bar for the Sticker Deck */}
+      <div className="mg-sticker-action-bar">
+        <button
+          type="button"
+          className="mg-sticker-btn-share"
+          disabled={isSharing}
+          onClick={() => void handleShareDeck()}
+          title="Share high-res sticker deck with date, time, and site branding"
+        >
+          <span className="mg-sticker-btn-icon">{isSharing ? "⏳" : "📸"}</span>
+          <span>{isSharing ? "GENERATING..." : "SHARE STICKER CARD"}</span>
+        </button>
+        <button
+          type="button"
+          className="mg-sticker-btn-sub"
+          disabled={isSharing}
+          onClick={() => void handleCopyDeck()}
+          title="Copy sticker deck image to clipboard (paste into Instagram Stories or chat)"
+        >
+          <span>📋</span> COPY STICKER
+        </button>
+        <button
+          type="button"
+          className="mg-sticker-btn-sub"
+          disabled={isSharing}
+          onClick={() => void handleSaveDeck()}
+          title="Save sticker deck as PNG image"
+        >
+          <span>💾</span> SAVE PNG
+        </button>
+      </div>
+
+      {/* Local Toast Feedback */}
+      {toastMsg && (
+        <div className="mg-sticker-toast" role="status" aria-live="polite">
+          <span className="mg-sc-toast-dot">●</span>
+          <span>{toastMsg}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -317,6 +491,7 @@ type ScoreCardProps = {
 function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onReset }: ScoreCardProps) {
   const [flipped, setFlipped] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [format, setFormat] = useState<"sticker" | "duo">("sticker");
   const [isGenerating, setIsGenerating] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -342,11 +517,12 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
         answer,
         dateLabel,
         solved,
+        format,
       });
       if (res === "copied") {
-        showToast("✓ Collector showcase image copied to clipboard! Paste into Stories or chat.");
+        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image copied to clipboard! Paste into Stories or chat.`);
       } else if (res === "downloaded") {
-        showToast("✓ Collector showcase image saved as PNG!");
+        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image saved as PNG!`);
       } else {
         showToast("✓ Card shared!");
       }
@@ -366,11 +542,12 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
         answer,
         dateLabel,
         solved,
+        format,
       });
       if (success) {
-        showToast("✓ Collector showcase image copied! Paste as sticker in Instagram Stories or chat.");
+        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image copied! Paste into Instagram Stories or chat.`);
       } else {
-        showToast("✓ Collector showcase image downloaded as PNG!");
+        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image downloaded as PNG!`);
       }
     } catch (e) {
       console.warn("Copy image failed:", e);
@@ -383,14 +560,24 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
   const handleDownloadCard = async () => {
     setIsGenerating(true);
     try {
-      const blob = await generateCollectorShowcaseBlob({
-        breakdown,
-        answer,
-        dateLabel,
-        solved,
-      });
-      downloadCardImage(blob, `MovieGoblin-${dateLabel}-Showcase.png`);
-      showToast("✓ Collector showcase image saved as PNG!");
+      const blob =
+        format === "duo"
+          ? await generateCollectorShowcaseBlob({
+              breakdown,
+              answer,
+              dateLabel,
+              solved,
+              format,
+            })
+          : await generateStickerDeckBlob({
+              breakdown,
+              answer,
+              dateLabel,
+              solved,
+              format,
+            });
+      downloadCardImage(blob, `MovieGoblin-${dateLabel}-${format === "duo" ? "Showcase" : "StickerDeck"}.png`);
+      showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector showcase"} image saved as PNG!`);
     } catch (e) {
       console.warn("Download card failed:", e);
       showToast("Could not download image.");
@@ -559,6 +746,24 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
       <div className="mg-sc-actions">
         {solved && (
           <>
+            <div className="mg-sc-format-bar">
+              <span className="mg-sc-format-label">SHARE AS:</span>
+              <button
+                type="button"
+                className={`mg-sc-fmt-btn ${format === "sticker" ? "is-active" : ""}`}
+                onClick={() => setFormat("sticker")}
+              >
+                🏷️ STICKER DECK
+              </button>
+              <button
+                type="button"
+                className={`mg-sc-fmt-btn ${format === "duo" ? "is-active" : ""}`}
+                onClick={() => setFormat("duo")}
+              >
+                🎴 DUO CARDS
+              </button>
+            </div>
+
             <button
               type="button"
               className="mg-sc-btn-share-img"
@@ -566,7 +771,13 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
               onClick={() => void handleShareCardImage()}
             >
               <span className="mg-sc-action-icon">{isGenerating ? "⏳" : "📸"}</span>
-              <span>{isGenerating ? "CAPTURING CARD..." : "SHARE CARD IMAGE"}</span>
+              <span>
+                {isGenerating
+                  ? "CAPTURING CARD..."
+                  : format === "sticker"
+                    ? "SHARE STICKER DECK IMAGE"
+                    : "SHARE COLLECTOR DUO CARDS"}
+              </span>
             </button>
 
             <div className="mg-sc-actions-row">
@@ -1132,6 +1343,7 @@ export function WordGoblinGame() {
                       />
                     </svg>
                     <span className="mg-logo-text">MovieGoblin</span>
+                    <span className="mg-mini-sticker mg-mini-sticker-aura" title="Arcade Aura points">+AURA</span>
                   </div>
 
                   <div className="mg-status-right">
@@ -1190,6 +1402,8 @@ export function WordGoblinGame() {
                               solved
                               guessCount={guesses.length}
                               cluesUsed={clues.length}
+                              dateLabel={formatPuzzleDate(dailyGame ? dailyGame.date : dayState.date)}
+                              answer={dayState.revealedAnswer}
                             />
                           </div>
                           <ScoreCard
@@ -1225,6 +1439,8 @@ export function WordGoblinGame() {
                               solved={false}
                               guessCount={guesses.length}
                               cluesUsed={clues.length}
+                              dateLabel={formatPuzzleDate(dailyGame ? dailyGame.date : dayState.date)}
+                              answer={dayState.revealedAnswer}
                             />
                           </div>
                           <ScoreCard
@@ -1467,6 +1683,7 @@ export function WordGoblinGame() {
                           <span className="mg-casefile-bar-badge">
                             {unlockedCaseCount}/5 UNCOVERED
                           </span>
+                          <span className="mg-mini-sticker mg-mini-sticker-classified">TOP SECRET</span>
                         </div>
                         <div className="mg-casefile-bar-right">
                           {!caseFileVisible ? (
@@ -1590,6 +1807,16 @@ export function WordGoblinGame() {
                                       {item.matchedTitle || item.guess}
                                     </span>
                                     {isBest && <span className="mg-best-tag">Best</span>}
+                                    {item.isCorrect && (
+                                      <span className="mg-mini-sticker mg-mini-sticker-pass">
+                                        MISSION PASSED!
+                                      </span>
+                                    )}
+                                    {!item.isCorrect && item.similarity >= 80 && (
+                                      <span className="mg-mini-sticker mg-mini-sticker-hot">
+                                        🔥 CLOSE MATCH
+                                      </span>
+                                    )}
                                     {/* Show attribute hint badges inline next to movie name to save vertical space */}
                                     {h && (caseFileVisible || isGameOver) && (
                                       <div className="mg-hints">

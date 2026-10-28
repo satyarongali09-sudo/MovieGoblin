@@ -22,8 +22,10 @@ export interface CardImageOptions {
   };
   answer?: RevealedAnswer;
   dateLabel: string;
+  timeLabel?: string;
   flipped?: boolean;
   solved: boolean;
+  format?: "sticker" | "duo";
 }
 
 // Pseudo-random deterministic number generator seeded by string
@@ -569,6 +571,512 @@ export async function generateCollectorShowcaseBlob(opts: CardImageOptions): Pro
 }
 
 /**
+ * Draws the 16x16 pixel TNT block on Canvas at (cx, cy)
+ */
+function drawCanvasPixelTnt(ctx: CanvasRenderingContext2D, cx: number, cy: number, pSize: number) {
+  const startX = cx - (16 * pSize) / 2;
+  const startY = cy - (16 * pSize) / 2;
+
+  const rect = (x: number, y: number, w: number, h: number, fill: string) => {
+    ctx.fillStyle = fill;
+    ctx.fillRect(startX + x * pSize, startY + y * pSize, w * pSize, h * pSize);
+  };
+
+  // Black outline
+  rect(3, 3, 10, 11, "#111111");
+  // Fuse & Spark
+  rect(7, 1, 2, 2, "#4A3B32");
+  rect(9, 0, 2, 2, "#FFD600");
+  rect(10, 1, 1, 1, "#FF5500");
+  // Top Red Dynamite
+  rect(4, 4, 8, 3, "#E52521");
+  rect(5, 4, 1, 3, "#FF6B6B");
+  rect(8, 4, 1, 3, "#B71C1C");
+  // White TNT Center Band
+  rect(4, 7, 8, 3, "#F8F8F8");
+  // Pixel "TNT" Glyphs
+  rect(5, 8, 1, 2, "#111111");
+  rect(7, 8, 2, 2, "#111111");
+  rect(10, 8, 1, 2, "#111111");
+  // Bottom Red Dynamite
+  rect(4, 10, 8, 3, "#D32F2F");
+  rect(5, 10, 1, 3, "#FF6B6B");
+  rect(8, 10, 1, 3, "#9A0007");
+}
+
+/**
+ * Draws the 16x16 pixel Diamond Sword on Canvas at (cx, cy)
+ */
+function drawCanvasPixelSword(ctx: CanvasRenderingContext2D, cx: number, cy: number, pSize: number) {
+  const startX = cx - (16 * pSize) / 2;
+  const startY = cy - (16 * pSize) / 2;
+
+  const rect = (x: number, y: number, w: number, h: number, fill: string) => {
+    ctx.fillStyle = fill;
+    ctx.fillRect(startX + x * pSize, startY + y * pSize, w * pSize, h * pSize);
+  };
+
+  // Cyan Diamond Blade
+  rect(11, 2, 3, 3, "#00E5FF");
+  rect(9, 4, 3, 3, "#00E5FF");
+  rect(7, 6, 3, 3, "#00E5FF");
+  rect(5, 8, 3, 3, "#00B8D4");
+  // Blade Highlight
+  rect(12, 2, 1, 1, "#E0FFFF");
+  rect(10, 4, 1, 1, "#E0FFFF");
+  rect(8, 6, 1, 1, "#E0FFFF");
+  // Crossguard
+  rect(3, 8, 2, 2, "#00838F");
+  rect(6, 11, 2, 2, "#00838F");
+  rect(4, 9, 3, 3, "#26C6DA");
+  // Wood Hilt & Gold Pommel
+  rect(3, 11, 2, 2, "#6D4C41");
+  rect(2, 12, 2, 2, "#FFD600");
+}
+
+/**
+ * Draws a Die-Cut Sticker Container on Canvas with authentic white contour and dark 3D drop shadow
+ */
+function drawDieCutStickerBase(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  radius = 16,
+  bgColor = "#161210"
+) {
+  // 1. Dark 3D Drop Shadow
+  ctx.fillStyle = "rgba(0, 0, 0, 0.72)";
+  drawRoundedRect(ctx, x + 5, y + 6, w, h, radius);
+  ctx.fill();
+
+  // 2. White Die-Cut Contour Outer Edge
+  ctx.fillStyle = "#FFFFFF";
+  drawRoundedRect(ctx, x, y, w, h, radius);
+  ctx.fill();
+
+  // 3. Black Inner Stroke
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = "#000000";
+  drawRoundedRect(ctx, x, y, w, h, radius);
+  ctx.stroke();
+
+  // 4. Inner Surface
+  ctx.fillStyle = bgColor;
+  drawRoundedRect(ctx, x + 4, y + 4, w - 8, h - 8, radius - 3);
+  ctx.fill();
+}
+
+/**
+ * Generates the authentic 1080x1080 Arcade Die-Cut Sticker Deck Showcase Image
+ * Features Date & Time, Site Branding, Solved Movie Dossier, the 4 Die-Cut Stickers, and Telemetry Rows!
+ */
+export async function generateStickerDeckBlob(opts: CardImageOptions): Promise<Blob> {
+  if (typeof window === "undefined") {
+    throw new Error("Canvas generation requires browser environment");
+  }
+
+  if (typeof document !== "undefined" && document.fonts) {
+    try {
+      await document.fonts.ready;
+    } catch {
+      // ignore
+    }
+  }
+
+  const posterUrl =
+    opts.answer?.poster_url ||
+    (opts.answer ? findLocalPoster(opts.answer.title, opts.answer.year) : undefined);
+  const posterImg = await getSafePosterImage(posterUrl);
+
+  const canvas = document.createElement("canvas");
+  const W = 1080;
+  const H = 1080;
+  canvas.width = W;
+  canvas.height = H;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not acquire 2D canvas context");
+
+  const { breakdown, answer, dateLabel, timeLabel, solved } = opts;
+  const PIXEL_FONT = '"Press Start 2P", monospace, system-ui';
+  const SANS_FONT = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+
+  // ── 1. Dark Retro Arcade Console Background ──
+  ctx.fillStyle = "#0E0B09";
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle warm radial corner glow
+  const glow = ctx.createRadialGradient(W / 2, 200, 50, W / 2, 200, 750);
+  glow.addColorStop(0, "rgba(255, 85, 0, 0.12)");
+  glow.addColorStop(0.6, "rgba(255, 85, 0, 0.03)");
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, W, H);
+
+  // Dotted Matrix Pegboard Pattern
+  ctx.fillStyle = "rgba(253, 227, 207, 0.08)";
+  for (let px = 24; px < W; px += 24) {
+    for (let py = 24; py < H; py += 24) {
+      ctx.fillRect(px, py, 2, 2);
+    }
+  }
+
+  // Double Neo-Brutalist Outer Frame
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "#FF5500";
+  ctx.strokeRect(16, 16, W - 32, H - 32);
+
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "rgba(253, 227, 207, 0.35)";
+  ctx.strokeRect(22, 22, W - 44, H - 44);
+
+  // ── 2. Top Header Bar: Branding + Date/Time Stamp ──
+  const barY = 56;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `bold 22px ${PIXEL_FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("★ MOVIEGOBLIN", 46, barY);
+
+  ctx.fillStyle = "#FF5500";
+  ctx.font = `bold 10px ${PIXEL_FONT}`;
+  ctx.fillText("MOVIE-GOBLIN.VERCEL.APP // ARCADE TELEMETRY", 46, barY + 22);
+
+  // Date and Time (Right side)
+  const fullDateTime = timeLabel ? `${dateLabel} · ${timeLabel}` : dateLabel;
+  ctx.fillStyle = "rgba(253, 227, 207, 0.92)";
+  ctx.font = `bold 12px ${PIXEL_FONT}`;
+  ctx.textAlign = "right";
+  ctx.fillText(fullDateTime.toUpperCase(), W - 46, barY);
+
+  // Status Indicator
+  ctx.fillStyle = solved ? "#38ef7d" : "#FF5500";
+  ctx.beginPath();
+  ctx.arc(W - 46 - ctx.measureText(fullDateTime.toUpperCase()).width - 16, barY - 4, 5, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(253, 227, 207, 0.65)";
+  ctx.font = `bold 9.5px ${PIXEL_FONT}`;
+  ctx.fillText(solved ? "AUTHENTICATED SOLVE ●" : "TERMINATED CASE ●", W - 46, barY + 22);
+
+  // Top Divider
+  ctx.setLineDash([6, 5]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(253, 227, 207, 0.3)";
+  ctx.beginPath();
+  ctx.moveTo(46, 96);
+  ctx.lineTo(W - 46, 96);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── 3. Solved Movie Dossier Card ──
+  const dosX = 46;
+  const dosY = 114;
+  const dosW = W - 92;
+  const dosH = 176;
+
+  // Dossier Drop Shadow
+  ctx.fillStyle = "#000000";
+  drawRoundedRect(ctx, dosX + 5, dosY + 5, dosW, dosH, 14);
+  ctx.fill();
+
+  // Dossier Surface
+  ctx.fillStyle = "#FFF7EE";
+  drawRoundedRect(ctx, dosX, dosY, dosW, dosH, 14);
+  ctx.fill();
+
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#000000";
+  drawRoundedRect(ctx, dosX, dosY, dosW, dosH, 14);
+  ctx.stroke();
+
+  // Poster Thumbnail (Left)
+  const postW = 98;
+  const postH = 144;
+  const postX = dosX + 16;
+  const postY = dosY + 16;
+
+  ctx.fillStyle = "#120E0C";
+  drawRoundedRect(ctx, postX + 3, postY + 3, postW, postH, 8);
+  ctx.fill();
+
+  ctx.save();
+  drawRoundedRect(ctx, postX, postY, postW, postH, 8);
+  ctx.clip();
+  if (posterImg) {
+    ctx.drawImage(posterImg, postX, postY, postW, postH);
+  } else {
+    ctx.fillStyle = "#161210";
+    ctx.fillRect(postX, postY, postW, postH);
+    ctx.fillStyle = "#FF5500";
+    ctx.font = `bold 28px ${SANS_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillText("🎬", postX + postW / 2, postY + postH / 2 + 10);
+  }
+  ctx.restore();
+
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = "#000000";
+  drawRoundedRect(ctx, postX, postY, postW, postH, 8);
+  ctx.stroke();
+
+  // Dossier Info (Right)
+  const infoX = postX + postW + 20;
+  const movieTitle = answer?.title || "Unknown Film";
+  const movieYear = answer?.year ? `(${answer.year})` : "";
+
+  ctx.fillStyle = "#000000";
+  ctx.font = `bold 27px ${SANS_FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText(`${movieTitle} ${movieYear}`, infoX, dosY + 44);
+
+  // Metadata pills
+  const decade = answer?.year ? `${Math.floor(answer.year / 10) * 10}s ERA` : null;
+  const pills = [
+    answer?.language ? answer.language.toUpperCase() : null,
+    answer?.runtime ? `${answer.runtime} MIN` : null,
+    decade,
+  ].filter(Boolean) as string[];
+
+  let pillX = infoX;
+  const pillY = dosY + 58;
+  for (const pill of pills) {
+    ctx.font = `bold 8.5px ${PIXEL_FONT}`;
+    const pW = ctx.measureText(pill).width + 16;
+    ctx.fillStyle = "#000000";
+    drawRoundedRect(ctx, pillX, pillY, pW, 20, 5);
+    ctx.fill();
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(pill, pillX + 8, pillY + 14);
+    pillX += pW + 8;
+  }
+
+  // Movie Facts 2-column strip
+  ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
+  ctx.font = `600 14px ${SANS_FONT}`;
+  if (answer?.director) {
+    ctx.fillText(`Director: ${answer.director}`, infoX, dosY + 106);
+  }
+  if (answer?.cast?.length) {
+    const castLine = `Starring: ${answer.cast.slice(0, 4).join(", ")}`;
+    ctx.fillText(castLine.length > 58 ? castLine.slice(0, 55) + "..." : castLine, infoX, dosY + 130);
+  }
+  if (answer?.genres?.length) {
+    ctx.fillText(`Genre: ${answer.genres.join(" · ")}`, infoX, dosY + 154);
+  }
+
+  // ── 4. Main Arcade Die-Cut Sticker Deck ──
+  const deckX = 46;
+  const deckY = 312;
+  const deckW = W - 92;
+  const deckH = 680;
+
+  // Deck Shadow
+  ctx.fillStyle = "#000000";
+  drawRoundedRect(ctx, deckX + 6, deckY + 6, deckW, deckH, 16);
+  ctx.fill();
+
+  // Deck Surface (Pegboard Mat)
+  const deckGrad = ctx.createLinearGradient(deckX, deckY, deckX, deckY + deckH);
+  deckGrad.addColorStop(0, "#191412");
+  deckGrad.addColorStop(1, "#271E1A");
+  ctx.fillStyle = deckGrad;
+  drawRoundedRect(ctx, deckX, deckY, deckW, deckH, 16);
+  ctx.fill();
+
+  ctx.lineWidth = 3.5;
+  ctx.strokeStyle = "#000000";
+  drawRoundedRect(ctx, deckX, deckY, deckW, deckH, 16);
+  ctx.stroke();
+
+  // Deck Header Bar
+  ctx.fillStyle = "#FFFFFF";
+  ctx.font = `bold 12px ${PIXEL_FONT}`;
+  ctx.textAlign = "left";
+  ctx.fillText("★ ARCADE STICKER DECK // CASE TELEMETRY", deckX + 22, deckY + 38);
+
+  // Status Badge
+  const statusText = solved ? `RESPECT +${breakdown.total} PTS` : "STATUS: GAME OVER";
+  ctx.font = `bold 11px ${PIXEL_FONT}`;
+  const statW = ctx.measureText(statusText).width + 20;
+  const statX = deckX + deckW - statW - 22;
+  ctx.fillStyle = "rgba(255, 85, 0, 0.22)";
+  drawRoundedRect(ctx, statX, deckY + 20, statW, 26, 6);
+  ctx.fill();
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "#FF5500";
+  drawRoundedRect(ctx, statX, deckY + 20, statW, 26, 6);
+  ctx.stroke();
+
+  ctx.fillStyle = "#FF5500";
+  ctx.fillText(statusText, statX + 10, deckY + 38);
+
+  // Divider
+  ctx.setLineDash([5, 5]);
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(253, 227, 207, 0.24)";
+  ctx.beginPath();
+  ctx.moveTo(deckX + 22, deckY + 58);
+  ctx.lineTo(deckX + deckW - 22, deckY + 58);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // ── 5. The 4 Die-Cut Stickers in 2x2 Grid (Matching Screenshot) ──
+  const gridGap = 18;
+  const stkW = (deckW - 44 - gridGap) / 2; // ~460px
+  const stkH = 146;
+
+  const col1X = deckX + 22;
+  const col2X = col1X + stkW + gridGap;
+  const row1Y = deckY + 76;
+  const row2Y = row1Y + stkH + gridGap;
+
+  // ── Sticker 1 (Top Left): GTA "MISSION PASSED! RESPECT +" or "GAME OVER" ──
+  drawDieCutStickerBase(ctx, col1X, row1Y, stkW, stkH, 16, "#140F0D");
+
+  if (solved) {
+    ctx.textAlign = "center";
+    ctx.font = `900 28px ${SANS_FONT}`;
+    // Black 3D Text Outline
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#000000";
+    ctx.strokeText("MISSION PASSED!", col1X + stkW / 2, row1Y + 62);
+    ctx.fillStyle = "#FF9D00";
+    ctx.fillText("MISSION PASSED!", col1X + stkW / 2, row1Y + 62);
+
+    ctx.font = `900 30px ${SANS_FONT}`;
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = "#000000";
+    ctx.strokeText("RESPECT +", col1X + stkW / 2, row1Y + 108);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText("RESPECT +", col1X + stkW / 2, row1Y + 108);
+  } else {
+    ctx.textAlign = "center";
+    ctx.font = `bold 24px ${PIXEL_FONT}`;
+    ctx.fillStyle = "#FFE600";
+    ctx.fillText("GAME", col1X + stkW / 2, row1Y + 60);
+    ctx.fillStyle = "#FF2233";
+    ctx.fillText("OVER", col1X + stkW / 2, row1Y + 104);
+  }
+
+  // ── Sticker 2 (Top Right): "+1000 AURA" 8-Bit Pixel Die-Cut Sticker ──
+  drawDieCutStickerBase(ctx, col2X, row1Y, stkW, stkH, 16, "#FFFFFF");
+
+  const auraPoints = solved ? `+${breakdown.total}` : "+000";
+  ctx.textAlign = "center";
+  ctx.font = `bold 28px ${PIXEL_FONT}`;
+  ctx.fillStyle = "#0B0B0B";
+  ctx.fillText(auraPoints, col2X + stkW / 2, row1Y + 62);
+
+  // Pixel AURA in golden yellow with black stroke
+  ctx.font = `bold 30px ${PIXEL_FONT}`;
+  ctx.lineWidth = 6;
+  ctx.strokeStyle = "#0B0B0B";
+  ctx.strokeText("AURA", col2X + stkW / 2, row1Y + 112);
+  ctx.fillStyle = "#FFB800";
+  ctx.fillText("AURA", col2X + stkW / 2, row1Y + 112);
+
+  // ── Sticker 3 (Bottom Left): 8-Bit Blocky TNT Block Die-Cut Sticker ──
+  drawDieCutStickerBase(ctx, col1X, row2Y, stkW, stkH, 16, "#1A1513");
+  drawCanvasPixelTnt(ctx, col1X + stkW / 2, row2Y + 54, 4.2);
+
+  ctx.textAlign = "center";
+  ctx.font = `bold 13px ${PIXEL_FONT}`;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(solved ? "MIND BLOWN" : "DETONATED", col1X + stkW / 2, row2Y + 124);
+
+  // ── Sticker 4 (Bottom Right): 8-Bit Blocky Diamond Sword Die-Cut Sticker ──
+  drawDieCutStickerBase(ctx, col2X, row2Y, stkW, stkH, 16, "#1A1513");
+  drawCanvasPixelSword(ctx, col2X + stkW / 2, row2Y + 54, 4.2);
+
+  const swordLabel = !solved
+    ? "BROKEN BLADE"
+    : breakdown.guessCount === 1
+      ? "1-SHOT SLAYER"
+      : breakdown.guessCount <= 3
+        ? "DIAMOND EDGE"
+        : "LOOT CLAIMED";
+
+  ctx.textAlign = "center";
+  ctx.font = `bold 13px ${PIXEL_FONT}`;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillText(swordLabel, col2X + stkW / 2, row2Y + 124);
+
+  // ── 6. 3-Row Telemetry Drawer (Exact Match to Screenshot) ──
+  const telemY = row2Y + stkH + 20;
+  const telemW = deckW - 44;
+  const rowH = 46;
+  const rowGap = 9;
+
+  const speedBadge = !solved
+    ? "💀 SIGNAL LOST"
+    : breakdown.guessCount === 1
+      ? "⚡ FIRST-TRY SNIPE"
+      : breakdown.guessCount <= 3
+        ? "🔥 SHARP DETECTIVE"
+        : breakdown.guessCount <= 6
+          ? "🎬 TACTICAL SOLVE"
+          : "🛡️ CLUTCH RECOVERY";
+
+  const protocolBadge = !solved
+    ? "⚠️ DOSSIER FORFEIT"
+    : breakdown.noCaseFileBonus > 0
+      ? "🔒 PURE INSTINCT (+300)"
+      : breakdown.cluesUsed === 0
+        ? "📂 CASE FILE OPENED"
+        : `🔍 ${breakdown.cluesUsed} CLUES DECRYPTED`;
+
+  const rankBadge = `🏆 RANK ${breakdown.rank} · ${breakdown.rankTitle}`;
+
+  const telemetryRows = [
+    { key: "SOLVE SPEED", val: speedBadge },
+    { key: "CASE PROTOCOL", val: protocolBadge },
+    { key: "ARCHIVE RANK", val: rankBadge },
+  ];
+
+  telemetryRows.forEach((row, idx) => {
+    const curY = telemY + idx * (rowH + rowGap);
+    ctx.fillStyle = "rgba(253, 227, 207, 0.08)";
+    drawRoundedRect(ctx, col1X, curY, telemW, rowH, 8);
+    ctx.fill();
+
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(253, 227, 207, 0.2)";
+    drawRoundedRect(ctx, col1X, curY, telemW, rowH, 8);
+    ctx.stroke();
+
+    ctx.fillStyle = "rgba(253, 227, 207, 0.65)";
+    ctx.font = `bold 10px ${PIXEL_FONT}`;
+    ctx.textAlign = "left";
+    ctx.fillText(row.key, col1X + 16, curY + 28);
+
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `bold 16px ${SANS_FONT}`;
+    ctx.textAlign = "right";
+    ctx.fillText(row.val, col1X + telemW - 16, curY + 29);
+  });
+
+  // ── 7. Branded Footer Watermark ──
+  ctx.fillStyle = "#FF5500";
+  ctx.font = `bold 11.5px ${PIXEL_FONT}`;
+  ctx.textAlign = "center";
+  ctx.fillText(
+    "★ PLAY DAILY AT MOVIE-GOBLIN.VERCEL.APP · CINEMA DETECTIVE DECK ★",
+    W / 2,
+    deckY + deckH + 42
+  );
+
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(blob);
+      else reject(new Error("Failed to export sticker deck canvas to PNG blob"));
+    }, "image/png");
+  });
+}
+
+/**
  * Downloads a card Blob as a PNG file.
  */
 export function downloadCardImage(blob: Blob, filename = "MovieGoblin-Card.png") {
@@ -587,9 +1095,12 @@ export function downloadCardImage(blob: Blob, filename = "MovieGoblin-Card.png")
  */
 export async function copyCardImageToClipboard(opts: CardImageOptions): Promise<boolean> {
   try {
-    const blob = await generateCollectorShowcaseBlob(opts);
+    const blob =
+      opts.format === "duo"
+        ? await generateCollectorShowcaseBlob(opts)
+        : await generateStickerDeckBlob(opts);
     if (!navigator.clipboard || typeof ClipboardItem === "undefined") {
-      downloadCardImage(blob, `MovieGoblin-${opts.dateLabel}-Showcase.png`);
+      downloadCardImage(blob, `MovieGoblin-${opts.dateLabel}-${opts.format || "StickerDeck"}.png`);
       return false;
     }
     const item = new ClipboardItem({ "image/png": blob });
@@ -602,21 +1113,24 @@ export async function copyCardImageToClipboard(opts: CardImageOptions): Promise<
 }
 
 /**
- * Opens Native OS Share Sheet with the 1080x1080 Retro Starfield Showcase image.
+ * Opens Native OS Share Sheet with the card image.
  */
 export async function shareCardImage(
   opts: CardImageOptions
 ): Promise<"shared" | "copied" | "downloaded"> {
-  const blob = await generateCollectorShowcaseBlob(opts);
-  const fileName = `MovieGoblin-${opts.dateLabel}-Showcase.png`;
+  const blob =
+    opts.format === "duo"
+      ? await generateCollectorShowcaseBlob(opts)
+      : await generateStickerDeckBlob(opts);
+  const fileName = `MovieGoblin-${opts.dateLabel}-${opts.format || "StickerDeck"}.png`;
   const file = new File([blob], fileName, { type: "image/png" });
 
   const shareData = {
     files: [file],
-    title: "MovieGoblin Collector Card",
+    title: "MovieGoblin Arcade Sticker Deck",
     text: `I solved today's MovieGoblin in ${opts.breakdown.guessCount} ${
       opts.breakdown.guessCount === 1 ? "guess" : "guesses"
-    }! [Rank ${opts.breakdown.rank} · ${opts.breakdown.total} PTS] 🎬`,
+    }! [Rank ${opts.breakdown.rank} · ${opts.breakdown.total} PTS] 🎬 Play at https://movie-goblin.vercel.app`,
   };
 
   if (typeof navigator !== "undefined" && navigator.canShare && navigator.canShare(shareData)) {
