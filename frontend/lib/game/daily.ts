@@ -152,9 +152,13 @@ export function loadDayState(expectedDate?: string): DayState {
     const raw = localStorage.getItem(DAY_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<DayState>;
-      // If the cached revealed answer was See Spot Run (the old non-Telugu test target),
-      // automatically clear it so the player can immediately play today's updated Telugu puzzle!
-      if (parsed.revealedAnswer?.title === "See Spot Run") {
+      // If the cached revealed answer was See Spot Run or Baahubali (old test targets),
+      // automatically clear it so the player can immediately play today's updated English puzzle!
+      if (
+        parsed.revealedAnswer?.title === "See Spot Run" ||
+        parsed.revealedAnswer?.title?.toLowerCase().includes("baahubali") ||
+        parsed.revealedAnswer?.title?.toLowerCase().includes("bahubali")
+      ) {
         localStorage.removeItem(DAY_KEY);
         return { date: targetDate, guesses: [], solved: false, caseFileOpened: false };
       }

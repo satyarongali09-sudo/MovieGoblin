@@ -555,7 +555,8 @@ export class MovieGoblinService {
     if (existingMovieId) {
       const matched = activeMovies.find((m) => m.id === existingMovieId);
       const isStaleOverride = overrideTitle && matched && normalizeTitle(matched.title) !== normalizeTitle(overrideTitle);
-      if (matched && !isStaleOverride) {
+      const isStaleTelugu = dateUTC === "2026-10-28" && matched && normalizeTitle(matched.title).includes("baahubali");
+      if (matched && !isStaleOverride && !isStaleTelugu) {
         return matched;
       }
     }
