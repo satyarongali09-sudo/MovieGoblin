@@ -10,6 +10,7 @@ import {
   recordWin,
   recordGiveUp,
   computeGameScore,
+  type ScoreBreakdown,
 } from "@/lib/game/daily";
 import {
   type AttributeKind,
@@ -117,6 +118,187 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
             </dl>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Two-Sided Flip Score Card ────────────────────────────────────────────────
+
+type ScoreCardProps = {
+  breakdown: ScoreBreakdown;
+  answer?: RevealedAnswer;
+  dateLabel: string;
+  solved: boolean;
+  copied: boolean;
+  onShare: () => void;
+  onReset: () => void;
+};
+
+function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onReset }: ScoreCardProps) {
+  const [flipped, setFlipped] = useState(false);
+  const [imgFailed, setImgFailed] = useState(false);
+  const posterUrl = answer ? answer.poster_url || findLocalPoster(answer.title, answer.year) : undefined;
+  const guessNo = String(breakdown.guessCount).padStart(2, "0");
+  const toggle = () => setFlipped((f) => !f);
+
+  const caseBonusText =
+    breakdown.noCaseFileBonus > 0
+      ? `+${breakdown.noCaseFileBonus} ★`
+      : solved
+        ? "+0 (Open)"
+        : "+0";
+
+  const tagline = solved
+    ? `Solved in ${breakdown.guessCount} ${breakdown.guessCount === 1 ? "guess" : "guesses"} with sharp cinema instinct!`
+    : "Signal lost today — come back tomorrow for a new film!";
+
+  return (
+    <div className={solved ? "mg-sc" : "mg-sc is-lost"}>
+      <div className="mg-sc-scene">
+        <div
+          className={flipped ? "mg-sc-flipper is-flipped" : "mg-sc-flipper"}
+          onClick={toggle}
+          role="button"
+          tabIndex={0}
+          aria-label={flipped ? "Score card back side. Click to flip to front side." : "Score card front side. Click to flip to back side."}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              toggle();
+            }
+          }}
+        >
+          {/* ── SIDE A (FRONT): Bold Pixel Collector Wordmark (Zesty Saloon Top Card Style) ── */}
+          <div className="mg-sc-face mg-sc-front" aria-hidden={flipped}>
+            <div className="mg-sc-front-meta">
+              <span>MOVIEGOBLIN · ID</span>
+              <span>{dateLabel}</span>
+            </div>
+
+            <div className="mg-sc-hero-wordmark">
+              <div className="mg-sc-hero-line1">
+                <span>RANK {breakdown.rank}</span>
+                <sup className="mg-sc-reg">®</sup>
+              </div>
+              <div className="mg-sc-hero-line2">
+                {breakdown.total} PTS
+              </div>
+            </div>
+
+            <div className="mg-sc-front-footer">
+              <span className="mg-sc-front-role">{breakdown.rankTitle}</span>
+              <span className="mg-sc-front-hint">SIDE A · TAP TO FLIP ↻</span>
+            </div>
+          </div>
+
+          {/* ── SIDE B (BACK): Framed Art + Ruled Ledger + Circle Stamp + Tagline (Zesty Saloon Bottom Card Style) ── */}
+          <div className="mg-sc-face mg-sc-back" aria-hidden={!flipped}>
+            <div className="mg-sc-back-frame">
+              <div className="mg-sc-back-top">
+                {/* Left Portrait / Pixel Mascot Well */}
+                <div className="mg-sc-portrait">
+                  {posterUrl && !imgFailed ? (
+                    <img
+                      src={posterUrl}
+                      alt={answer?.title ?? "Movie poster"}
+                      className="mg-sc-portrait-img"
+                      referrerPolicy="no-referrer"
+                      onError={() => setImgFailed(true)}
+                    />
+                  ) : (
+                    <div className="mg-sc-mascot" aria-hidden="true">
+                      <svg viewBox="0 0 16 16" className="mg-sc-mascot-svg">
+                        <path
+                          fill="currentColor"
+                          d="M4 1h8v2h2v3h1v4h-1v3h-2v2H4v-2H2v-3H1V6h1V3h2V1zm1 3v2H3v4h2v2h6v-2h2V6h-2V4H5zm1 2h2v2H6V6zm4 0h2v2h-2V6zm-3 4h4v1H7v-1z"
+                        />
+                      </svg>
+                      <span>RANK {breakdown.rank}</span>
+                    </div>
+                  )}
+                  <span className="mg-sc-portrait-tag">RANK {breakdown.rank}</span>
+                </div>
+
+                {/* Right Horizontal Ruled Specification Ledger */}
+                <div className="mg-sc-ledger">
+                  <div className="mg-sc-ledger-row is-brand">
+                    <span>MOVIEGOBLIN</span>
+                    <sup className="mg-sc-reg-sm">®</sup>
+                  </div>
+                  <div className="mg-sc-ledger-row is-subtitle">
+                    <span>{breakdown.rankTitle}</span>
+                  </div>
+                  <div className="mg-sc-ledger-row is-stat">
+                    <span>Base Solve</span>
+                    <strong>+{breakdown.baseScore}</strong>
+                  </div>
+                  <div className="mg-sc-ledger-row is-stat">
+                    <span>Efficiency ({breakdown.guessCount}g)</span>
+                    <strong>+{breakdown.efficiencyBonus}</strong>
+                  </div>
+                  <div
+                    className={
+                      breakdown.noCaseFileBonus > 0
+                        ? "mg-sc-ledger-row is-stat is-bonus"
+                        : "mg-sc-ledger-row is-stat is-muted"
+                    }
+                  >
+                    <span>🔒 Case File Hidden</span>
+                    <strong>{caseBonusText}</strong>
+                  </div>
+
+                  {/* Bottom Split Ledger + Circular Number Badge */}
+                  <div className="mg-sc-ledger-split">
+                    <div className="mg-sc-ledger-split-rows">
+                      <div className="mg-sc-ledger-row is-stat">
+                        <span>No-Clue Bonus</span>
+                        <strong>+{breakdown.noClueBonus}</strong>
+                      </div>
+                      <div className="mg-sc-ledger-row is-stat is-total">
+                        <span>Total Score</span>
+                        <strong>{breakdown.total} PTS</strong>
+                      </div>
+                    </div>
+                    <div className="mg-sc-stamp-box" title={`${breakdown.guessCount} guesses`}>
+                      <div className="mg-sc-stamp-circle">
+                        <span>{guessNo}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom Full-Width Italic Tagline Strip */}
+              <div className="mg-sc-tagline-bar">
+                <p>{tagline}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Dedicated Bottom Flip Option */}
+      <button
+        type="button"
+        className="mg-sc-flip-btn"
+        onClick={toggle}
+        aria-pressed={flipped}
+      >
+        <span className="mg-sc-flip-icon" aria-hidden="true">⇄</span>
+        <span>{flipped ? "FLIP TO FRONT SIDE (RANK BADGE)" : "FLIP CARD TO SEE BACK SIDE (BREAKDOWN)"}</span>
+      </button>
+
+      {/* Action Buttons: Share Score Report + Play New / Reset Puzzle */}
+      <div className="mg-sc-actions">
+        {solved && (
+          <button type="button" className="mg-btn-share" onClick={onShare}>
+            {copied ? "✓ COPIED SCORE" : "SHARE SCORE REPORT"}
+          </button>
+        )}
+        <button type="button" className="mg-sc-btn-reset" onClick={onReset}>
+          🔄 PLAY NEW / RESET PUZZLE
+        </button>
       </div>
     </div>
   );
@@ -343,6 +525,12 @@ export function WordGoblinGame() {
       setStatusMessage("🔒 Case File Hidden! +300 Point Bonus active for solving without clues.");
       setIsWarning(false);
     }
+  }
+
+  // ── Reset Puzzle (clear today's local progress) ────────────────────────────
+  function handleResetPuzzle() {
+    localStorage.removeItem("wg:day");
+    window.location.reload();
   }
 
   // ── Share Score Report ─────────────────────────────────────────────────────
@@ -681,7 +869,7 @@ export function WordGoblinGame() {
                     </div>
                   )}
 
-                  {/* Solved — With Retro Console Point Score Breakdown */}
+                  {/* Solved — Two-sided flip score card */}
                   {!serverError && dayState?.solved && (
                     <div className="mg-banner mg-banner-win" role="status">
                       <div className="mg-banner-body">
@@ -692,65 +880,15 @@ export function WordGoblinGame() {
                             </p>
                             {dayState.revealedAnswer && <AnswerCard answer={dayState.revealedAnswer} />}
                           </div>
-
-                          <div className="mg-score-card">
-                            <div className="mg-score-card-top">
-                              <span className="mg-rank-badge">RANK {scoreBreakdown.rank}</span>
-                              <span className="mg-rank-title">{scoreBreakdown.rankTitle}</span>
-                            </div>
-                            <div className="mg-score-total">{scoreBreakdown.total} PTS</div>
-                            <div className="mg-score-breakdown">
-                              <div className="mg-score-line">
-                                <span>Base Solve</span>
-                                <strong>+{scoreBreakdown.baseScore}</strong>
-                              </div>
-                              <div className="mg-score-line">
-                                <span>Efficiency ({guesses.length}g)</span>
-                                <strong>+{scoreBreakdown.efficiencyBonus}</strong>
-                              </div>
-                              <div className={scoreBreakdown.noCaseFileBonus > 0 ? "mg-score-line is-bonus" : "mg-score-line is-muted"}>
-                                <span>🔒 Case File Hidden Bonus</span>
-                                <strong>
-                                  {scoreBreakdown.noCaseFileBonus > 0 ? `+${scoreBreakdown.noCaseFileBonus} ★` : "+0 (Open)"}
-                                </strong>
-                              </div>
-                              <div className="mg-score-line">
-                                <span>No-Clue Bonus</span>
-                                <strong>+{scoreBreakdown.noClueBonus}</strong>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              className="mg-btn-share"
-                              onClick={() => void handleShareScore()}
-                            >
-                              {copiedShare ? "✓ COPIED SCORE" : "SHARE SCORE REPORT"}
-                            </button>
-                            <button
-                              type="button"
-                              className="mg-btn-reset-test"
-                              style={{
-                                marginTop: "8px",
-                                width: "100%",
-                                padding: "8px 12px",
-                                background: "#0a0a0a",
-                                color: "#f97316",
-                                border: "1.5px solid #f97316",
-                                fontFamily: "var(--font-mono, monospace)",
-                                fontSize: "11px",
-                                fontWeight: "bold",
-                                letterSpacing: "1px",
-                                cursor: "pointer",
-                                textTransform: "uppercase",
-                              }}
-                              onClick={() => {
-                                localStorage.removeItem("wg:day");
-                                window.location.reload();
-                              }}
-                            >
-                              🔄 PLAY NEW / RESET PUZZLE
-                            </button>
-                          </div>
+                          <ScoreCard
+                            breakdown={scoreBreakdown}
+                            answer={dayState.revealedAnswer}
+                            dateLabel={formatPuzzleDate(dailyGame ? dailyGame.date : dayState.date)}
+                            solved
+                            copied={copiedShare}
+                            onShare={() => void handleShareScore()}
+                            onReset={handleResetPuzzle}
+                          />
                         </div>
                       </div>
                     </div>
@@ -769,40 +907,15 @@ export function WordGoblinGame() {
                               <p className="mg-banner-desc">You gave up today. Come back tomorrow for a new film.</p>
                             )}
                           </div>
-                          <div className="mg-score-card is-surrendered">
-                            <div className="mg-score-card-top">
-                              <span className="mg-rank-badge">RANK F</span>
-                              <span className="mg-rank-title">SIGNAL LOST</span>
-                            </div>
-                            <div className="mg-score-total">0 PTS</div>
-                            <p className="mg-score-note">
-                              Solve tomorrow&apos;s film without opening the Case File for +300 bonus points!
-                            </p>
-                            <button
-                              type="button"
-                              className="mg-btn-reset-test"
-                              style={{
-                                marginTop: "8px",
-                                width: "100%",
-                                padding: "8px 12px",
-                                background: "#0a0a0a",
-                                color: "#f97316",
-                                border: "1.5px solid #f97316",
-                                fontFamily: "var(--font-mono, monospace)",
-                                fontSize: "11px",
-                                fontWeight: "bold",
-                                letterSpacing: "1px",
-                                cursor: "pointer",
-                                textTransform: "uppercase",
-                              }}
-                              onClick={() => {
-                                localStorage.removeItem("wg:day");
-                                window.location.reload();
-                              }}
-                            >
-                              🔄 PLAY NEW / RESET PUZZLE
-                            </button>
-                          </div>
+                          <ScoreCard
+                            breakdown={scoreBreakdown}
+                            answer={dayState.revealedAnswer}
+                            dateLabel={formatPuzzleDate(dailyGame ? dailyGame.date : dayState.date)}
+                            solved={false}
+                            copied={copiedShare}
+                            onShare={() => void handleShareScore()}
+                            onReset={handleResetPuzzle}
+                          />
                         </div>
                       </div>
                     </div>

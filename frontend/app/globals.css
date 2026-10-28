@@ -1210,6 +1210,448 @@ p {
   transform: translateY(-1px);
 }
 
+/* ── Two-Sided Retro Collector Flip Score Card (Zesty Saloon Inspired) ── */
+.mg-sc {
+  width: 350px;
+  max-width: 100%;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.mg-sc-scene {
+  perspective: 1100px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mg-sc-flipper {
+  display: grid;
+  grid-template-areas: "card";
+  width: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+}
+
+.mg-sc-flipper:focus-visible {
+  outline: 2.5px dashed var(--mg-ink);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.mg-sc-flipper.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.mg-sc-face {
+  grid-area: card;
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 13px;
+  border: 2.5px solid var(--mg-ink);
+  background: linear-gradient(140deg, #fff5eb 0%, #fde0c6 50%, #f3c49f 100%);
+  color: var(--mg-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    4px 4px 0 var(--mg-ink);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: hidden;
+}
+
+.mg-sc-front {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 226px;
+  position: relative;
+  background:
+    radial-gradient(circle at 22% 18%, rgba(255, 255, 255, 0.68), transparent 55%),
+    linear-gradient(140deg, #fff6ed 0%, #f9d8bc 52%, #ecb991 100%);
+}
+
+.mg-sc-flipper.is-flipped .mg-sc-front {
+  pointer-events: none;
+}
+
+.mg-sc-flipper:not(.is-flipped) .mg-sc-back {
+  pointer-events: none;
+}
+
+.mg-sc-front-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--mg-pixel);
+  font-size: 7.5px;
+  letter-spacing: 0.06em;
+  opacity: 0.72;
+  text-transform: uppercase;
+}
+
+.mg-sc-hero-wordmark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 18px 4px;
+  margin: auto 0;
+}
+
+.mg-sc-hero-line1 {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  font-family: var(--mg-pixel);
+  font-size: 25px;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  color: var(--mg-ink);
+  text-shadow: 2px 2px 0 rgba(255, 85, 0, 0.28);
+}
+
+.mg-sc-reg {
+  font-family: var(--mg-pixel);
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 3px;
+  border: 1.5px solid var(--mg-ink);
+  border-radius: 3px;
+  transform: translateY(-2px);
+}
+
+.mg-sc-hero-line2 {
+  font-family: var(--mg-pixel);
+  font-size: 22px;
+  line-height: 1.1;
+  letter-spacing: 0.04em;
+  color: var(--mg-ink);
+  padding: 5px 12px;
+  background: var(--mg-ink);
+  color: var(--mg-screen);
+  border-radius: 6px;
+  box-shadow: 2.5px 2.5px 0 rgba(11, 11, 11, 0.25);
+}
+
+.mg-sc-front-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1.5px dashed rgba(11, 11, 11, 0.35);
+}
+
+.mg-sc-front-role {
+  font-family: var(--mg-sans);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mg-sc-front-hint {
+  font-family: var(--mg-pixel);
+  font-size: 7px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: rgba(11, 11, 11, 0.1);
+  color: var(--mg-ink);
+}
+
+/* ── SIDE B (BACK): Zesty Saloon Ruled Ledger + Portrait + Stamp + Tagline ── */
+.mg-sc-back {
+  transform: rotateY(180deg);
+  padding: 7px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mg-sc-back-frame {
+  border: 2px solid var(--mg-ink);
+  border-radius: 7px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  flex: 1;
+  box-sizing: border-box;
+  background: rgba(255, 248, 240, 0.72);
+}
+
+.mg-sc-back-top {
+  display: grid;
+  grid-template-columns: 106px 1fr;
+  width: 100%;
+  min-width: 0;
+  border-bottom: 2px solid var(--mg-ink);
+}
+
+.mg-sc-portrait {
+  background: var(--mg-ink);
+  color: var(--mg-cream);
+  border-right: 2px solid var(--mg-ink);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  min-height: 158px;
+}
+
+.mg-sc-portrait-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: contrast(1.06);
+}
+
+.mg-sc-mascot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  color: var(--mg-cream);
+  font-family: var(--mg-pixel);
+  font-size: 8px;
+  text-align: center;
+}
+
+.mg-sc-mascot-svg {
+  width: 58px;
+  height: 58px;
+  color: var(--mg-screen);
+}
+
+.mg-sc-portrait-tag {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  right: 5px;
+  background: rgba(11, 11, 11, 0.88);
+  color: var(--mg-screen);
+  border: 1.5px solid var(--mg-screen);
+  border-radius: 4px;
+  padding: 3px 4px;
+  font-family: var(--mg-pixel);
+  font-size: 7.5px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+.mg-sc-ledger {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+}
+
+.mg-sc-ledger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 8px;
+  border-bottom: 1.5px solid var(--mg-ink);
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mg-sc-ledger-row.is-brand {
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  font-family: var(--mg-pixel);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  background: rgba(11, 11, 11, 0.05);
+}
+
+.mg-sc-reg-sm {
+  font-size: 6.5px;
+  margin-left: 1px;
+}
+
+.mg-sc-ledger-row.is-subtitle {
+  font-family: var(--mg-sans);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-style: italic;
+  padding: 3.5px 8px;
+}
+
+.mg-sc-ledger-row.is-stat {
+  font-family: var(--mg-sans);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-style: italic;
+}
+
+.mg-sc-ledger-row.is-stat span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mg-sc-ledger-row.is-stat strong {
+  font-family: var(--mg-pixel);
+  font-size: 8px;
+  font-style: normal;
+  flex-shrink: 0;
+}
+
+.mg-sc-ledger-row.is-bonus {
+  background: var(--mg-ink);
+  color: var(--mg-screen);
+}
+
+.mg-sc-ledger-row.is-muted {
+  opacity: 0.72;
+}
+
+.mg-sc-ledger-split {
+  display: grid;
+  grid-template-columns: 1fr 48px;
+  width: 100%;
+  min-width: 0;
+}
+
+.mg-sc-ledger-split-rows {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mg-sc-ledger-split-rows .mg-sc-ledger-row:last-child {
+  border-bottom: 0;
+}
+
+.mg-sc-ledger-row.is-total {
+  background: rgba(255, 85, 0, 0.14);
+  font-weight: 800;
+}
+
+.mg-sc-stamp-box {
+  border-left: 2px solid var(--mg-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  background: rgba(11, 11, 11, 0.04);
+}
+
+.mg-sc-stamp-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--mg-ink);
+  background: var(--mg-cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mg-pixel);
+  font-size: 10px;
+  color: var(--mg-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.mg-sc-tagline-bar {
+  padding: 6px 10px;
+  background: linear-gradient(90deg, rgba(11, 11, 11, 0.06), rgba(255, 85, 0, 0.12), rgba(11, 11, 11, 0.06));
+  text-align: center;
+}
+
+.mg-sc-tagline-bar p {
+  margin: 0;
+  font-family: var(--mg-sans);
+  font-size: 11.5px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  color: var(--mg-ink);
+  text-shadow: 0.5px 0.5px 0 rgba(255, 255, 255, 0.8);
+}
+
+/* ── Dedicated Bottom Flip Button & Action Bar ── */
+.mg-sc-flip-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 2px solid var(--mg-ink);
+  background: var(--mg-cream);
+  color: var(--mg-ink);
+  font-family: var(--mg-pixel);
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 2.5px 2.5px 0 var(--mg-ink);
+  transition: transform 0.1s ease, background-color 0.12s ease;
+}
+
+.mg-sc-flip-btn:hover {
+  background: var(--mg-screen);
+  color: var(--mg-ink);
+  transform: translateY(-1px);
+}
+
+.mg-sc-flip-icon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.mg-sc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.mg-sc-actions .mg-btn-share {
+  width: 100%;
+}
+
+.mg-sc-btn-reset {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--mg-ink);
+  color: var(--mg-screen);
+  border: 1.5px solid var(--mg-screen);
+  font-family: var(--mg-pixel);
+  font-size: 8.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.12s ease;
+}
+
+.mg-sc-btn-reset:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+
 /* ── Search Input Area (Scaled Up for Desktop Console Feel) ──────────────── */
 .mg-search-form {
   display: flex;
@@ -2147,7 +2589,7 @@ p {
 
 /* ── Revealed answer card ──────────────────────────────────────────────── */
 .mg-win-info {
-  width: 100%;
+  flex: 1 1 320px;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -3198,37 +3640,70 @@ p {
     min-width: 0;
   }
 
-  .mg-score-card {
-    margin-top: 4px;
-    padding: 10px 12px;
+  /* Mobile Responsive Two-Sided Score Card (.mg-sc) */
+  .mg-sc {
     width: 100%;
+    max-width: 100%;
     box-sizing: border-box;
+    margin-top: 4px;
   }
 
-  .mg-score-card-top {
-    padding-bottom: 6px;
-    gap: 8px;
+  .mg-sc-front {
+    min-height: 196px;
+    padding: 12px 14px;
   }
 
-  .mg-rank-badge {
-    padding: 4px 8px;
-    font-size: 8px;
+  .mg-sc-hero-line1 {
+    font-size: 21px;
   }
 
-  .mg-rank-title {
-    font-size: 10px;
+  .mg-sc-hero-line2 {
+    font-size: 18px;
   }
 
-  .mg-score-total {
-    font-size: 20px;
+  .mg-sc-back {
+    padding: 8px;
   }
 
-  .mg-score-breakdown {
-    gap: 4px;
+  .mg-sc-back-top {
+    grid-template-columns: 84px 1fr;
   }
 
-  .mg-score-line {
-    font-size: 11.5px;
+  .mg-sc-portrait {
+    min-height: 144px;
+    padding: 6px;
+  }
+
+  .mg-sc-ledger-row {
+    padding: 3.5px 6px;
+  }
+
+  .mg-sc-ledger-row.is-brand {
+    font-size: 9.5px;
+  }
+
+  .mg-sc-ledger-row.is-stat {
+    font-size: 11px;
+  }
+
+  .mg-sc-ledger-split {
+    grid-template-columns: 1fr 42px;
+  }
+
+  .mg-sc-stamp-circle {
+    width: 32px;
+    height: 32px;
+    font-size: 9px;
+  }
+
+  .mg-sc-back-tagline {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .mg-sc-flip-btn {
+    font-size: 7.5px;
+    padding: 8px 10px;
   }
 
   .mg-btn-share {
