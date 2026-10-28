@@ -169,6 +169,7 @@ function VictoryStickerDeck({
   answer,
 }: VictoryStickerDeckProps) {
   const [isSharing, setIsSharing] = useState(false);
+  const [spoilerFree, setSpoilerFree] = useState(true);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -187,11 +188,12 @@ function VictoryStickerDeck({
         dateLabel,
         solved,
         format: "sticker",
+        spoilerFree,
       });
       if (res === "copied") {
-        showToast("✓ Sticker deck image copied to clipboard! Paste as sticker into Stories or chat.");
+        showToast("✓ Spoiler-free sticker deck copied to clipboard! Paste into Stories or chat.");
       } else if (res === "downloaded") {
-        showToast("✓ Sticker deck saved as PNG image!");
+        showToast("✓ Spoiler-free sticker deck saved as PNG image!");
       } else {
         showToast("✓ Sticker deck shared!");
       }
@@ -212,11 +214,12 @@ function VictoryStickerDeck({
         dateLabel,
         solved,
         format: "sticker",
+        spoilerFree,
       });
       if (ok) {
-        showToast("✓ Sticker deck copied to clipboard! Paste as sticker into Instagram Stories or chat.");
+        showToast("✓ Spoiler-free sticker deck copied to clipboard! Safe to share in Stories or chat.");
       } else {
-        showToast("✓ Sticker deck saved as PNG image!");
+        showToast("✓ Spoiler-free sticker deck saved as PNG image!");
       }
     } catch (e) {
       console.warn("Copy deck failed:", e);
@@ -235,9 +238,10 @@ function VictoryStickerDeck({
         dateLabel,
         solved,
         format: "sticker",
+        spoilerFree,
       });
       downloadCardImage(blob, `MovieGoblin-${dateLabel}-StickerDeck.png`);
-      showToast("✓ Sticker deck saved as high-res PNG!");
+      showToast("✓ Spoiler-free sticker deck saved as high-res PNG!");
     } catch (e) {
       console.warn("Save deck failed:", e);
       showToast("Could not download sticker image.");
@@ -288,14 +292,24 @@ function VictoryStickerDeck({
         <span className="mg-sticker-board-status">
           {solved ? `RESPECT +${breakdown.total} PTS` : "STATUS: GAME OVER"}
         </span>
-        <button
-          type="button"
-          className="mg-sticker-pill-share"
-          disabled={isSharing}
-          onClick={() => void handleShareDeck()}
-        >
-          {isSharing ? "⏳ CAPTURING..." : "📸 SHARE STICKER CARD"}
-        </button>
+        <div className="mg-sticker-subbar-actions">
+          <button
+            type="button"
+            className={`mg-sticker-pill-toggle ${spoilerFree ? "is-active" : ""}`}
+            onClick={() => setSpoilerFree((s) => !s)}
+            title="Toggle spoiler protection for shared images"
+          >
+            {spoilerFree ? "🔒 SPOILER FREE: ON" : "👁️ SPOILER FREE: OFF"}
+          </button>
+          <button
+            type="button"
+            className="mg-sticker-pill-share"
+            disabled={isSharing}
+            onClick={() => void handleShareDeck()}
+          >
+            {isSharing ? "⏳ CAPTURING..." : "📸 SHARE STICKER CARD"}
+          </button>
+        </div>
       </div>
 
       {/* Die-Cut Collector Stickers Row */}
@@ -492,6 +506,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
   const [flipped, setFlipped] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
   const [format, setFormat] = useState<"sticker" | "duo">("sticker");
+  const [spoilerFree, setSpoilerFree] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
@@ -518,11 +533,12 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
         dateLabel,
         solved,
         format,
+        spoilerFree,
       });
       if (res === "copied") {
-        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image copied to clipboard! Paste into Stories or chat.`);
+        showToast(`✓ Spoiler-free ${format === "sticker" ? "sticker deck" : "collector"} image copied! Paste into Stories or chat.`);
       } else if (res === "downloaded") {
-        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image saved as PNG!`);
+        showToast(`✓ Spoiler-free ${format === "sticker" ? "sticker deck" : "collector"} image saved as PNG!`);
       } else {
         showToast("✓ Card shared!");
       }
@@ -543,11 +559,12 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
         dateLabel,
         solved,
         format,
+        spoilerFree,
       });
       if (success) {
-        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image copied! Paste into Instagram Stories or chat.`);
+        showToast(`✓ Spoiler-free ${format === "sticker" ? "sticker deck" : "collector"} image copied! Safe for Stories or chat.`);
       } else {
-        showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector"} image downloaded as PNG!`);
+        showToast(`✓ Spoiler-free ${format === "sticker" ? "sticker deck" : "collector"} image downloaded as PNG!`);
       }
     } catch (e) {
       console.warn("Copy image failed:", e);
@@ -568,6 +585,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
               dateLabel,
               solved,
               format,
+              spoilerFree,
             })
           : await generateStickerDeckBlob({
               breakdown,
@@ -575,9 +593,13 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
               dateLabel,
               solved,
               format,
+              spoilerFree,
             });
-      downloadCardImage(blob, `MovieGoblin-${dateLabel}-${format === "duo" ? "Showcase" : "StickerDeck"}.png`);
-      showToast(`✓ ${format === "sticker" ? "Sticker deck" : "Collector showcase"} image saved as PNG!`);
+      downloadCardImage(
+        blob,
+        `MovieGoblin-${dateLabel}-${format === "duo" ? "Showcase" : "StickerDeck"}${spoilerFree ? "-Safe" : ""}.png`
+      );
+      showToast(`✓ Spoiler-free ${format === "sticker" ? "sticker deck" : "collector showcase"} saved as PNG!`);
     } catch (e) {
       console.warn("Download card failed:", e);
       showToast("Could not download image.");
@@ -761,6 +783,14 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
                 onClick={() => setFormat("duo")}
               >
                 🎴 DUO CARDS
+              </button>
+              <button
+                type="button"
+                className={`mg-sc-fmt-btn mg-sc-fmt-spoiler ${spoilerFree ? "is-active" : ""}`}
+                onClick={() => setSpoilerFree((s) => !s)}
+                title="Toggle spoiler protection for shared images"
+              >
+                {spoilerFree ? "🔒 SPOILER FREE" : "👁️ SHOW TITLE"}
               </button>
             </div>
 

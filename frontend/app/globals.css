@@ -2979,6 +2979,38 @@ p {
   text-transform: uppercase;
 }
 
+.mg-sticker-subbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mg-sticker-pill-toggle {
+  background: rgba(253, 227, 207, 0.12);
+  color: var(--mg-cream);
+  border: 1.5px solid rgba(253, 227, 207, 0.35);
+  border-radius: 5px;
+  font-family: var(--mg-pixel);
+  font-size: 7px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.mg-sticker-pill-toggle:hover {
+  background: rgba(253, 227, 207, 0.22);
+}
+
+.mg-sticker-pill-toggle.is-active {
+  background: #D32F2F;
+  color: #FFFFFF;
+  border-color: #FFFFFF;
+  box-shadow: 1px 1px 0 #000000;
+}
+
 .mg-sticker-pill-share {
   background: var(--mg-screen);
   color: var(--mg-ink);
@@ -2998,6 +3030,12 @@ p {
 .mg-sticker-pill-share:hover {
   filter: brightness(1.1);
   transform: translateY(-1px);
+}
+
+.mg-sc-fmt-spoiler.is-active {
+  background: #D32F2F;
+  color: #FFFFFF;
+  border-color: #D32F2F;
 }
 
 .mg-sticker-deck-hint {

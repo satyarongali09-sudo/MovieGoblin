@@ -26,6 +26,7 @@ export interface CardImageOptions {
   flipped?: boolean;
   solved: boolean;
   format?: "sticker" | "duo";
+  spoilerFree?: boolean;
 }
 
 // Pseudo-random deterministic number generator seeded by string
@@ -348,7 +349,7 @@ export async function generateCollectorShowcaseBlob(opts: CardImageOptions): Pro
   ctx.fillStyle = "#0B0B0B";
   ctx.fillRect(frameX, frameY, portraitW, topH);
 
-  if (posterImg) {
+  if (posterImg && opts.spoilerFree === false) {
     const pW = (posterImg as HTMLImageElement).naturalWidth || (posterImg as HTMLCanvasElement).width || 300;
     const pH = (posterImg as HTMLImageElement).naturalHeight || (posterImg as HTMLCanvasElement).height || 450;
     const imgAspect = pW / pH;
@@ -371,6 +372,46 @@ export async function generateCollectorShowcaseBlob(opts: CardImageOptions): Pro
     } catch {
       // fallback
     }
+  } else {
+    // 🔒 Spoiler-free classified vault graphic on Back of card
+    ctx.fillStyle = "#14100E";
+    ctx.fillRect(frameX, frameY, portraitW, topH);
+
+    // Hazard stripes
+    ctx.fillStyle = "rgba(255, 85, 0, 0.15)";
+    for (let s = -40; s < portraitW + topH; s += 22) {
+      ctx.beginPath();
+      ctx.moveTo(frameX + s, frameY);
+      ctx.lineTo(frameX + s + 10, frameY);
+      ctx.lineTo(frameX + s + 10 - topH, frameY + topH);
+      ctx.lineTo(frameX + s - topH, frameY + topH);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = "#FF5500";
+    ctx.font = `bold 42px ${SANS_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillText("🎬", frameX + portraitW / 2, frameY + topH / 2 - 20);
+
+    // Diagonal TOP SECRET Tape
+    ctx.save();
+    ctx.translate(frameX + portraitW / 2, frameY + topH / 2 + 10);
+    ctx.rotate((-13 * Math.PI) / 180);
+    ctx.fillStyle = "#D32F2F";
+    ctx.fillRect(-58, -14, 116, 28);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.strokeRect(-58, -14, 116, 28);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `bold 9.5px ${PIXEL_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillText("TOP SECRET", 0, 4);
+    ctx.restore();
+
+    ctx.fillStyle = "rgba(253, 227, 207, 0.75)";
+    ctx.font = `bold 8.5px ${PIXEL_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillText("[SPOILER-FREE DOSSIER]", frameX + portraitW / 2, frameY + topH - 58);
   }
 
   // Portrait bottom pill badge: RANK <X>
@@ -791,7 +832,9 @@ export async function generateStickerDeckBlob(opts: CardImageOptions): Promise<B
   drawRoundedRect(ctx, dosX, dosY, dosW, dosH, 14);
   ctx.stroke();
 
-  // Poster Thumbnail (Left)
+  const isSpoilerFree = opts.spoilerFree !== false; // Default: TRUE (spoiler-safe by default!)
+
+  // Poster / Classified Vault Thumbnail (Left)
   const postW = 98;
   const postH = 144;
   const postX = dosX + 16;
@@ -804,15 +847,52 @@ export async function generateStickerDeckBlob(opts: CardImageOptions): Promise<B
   ctx.save();
   drawRoundedRect(ctx, postX, postY, postW, postH, 8);
   ctx.clip();
-  if (posterImg) {
+
+  if (!isSpoilerFree && posterImg) {
+    // Explicit revealed mode
     ctx.drawImage(posterImg, postX, postY, postW, postH);
   } else {
-    ctx.fillStyle = "#161210";
+    // 🔒 SPOILER-FREE CLASSIFIED VAULT (Default)
+    ctx.fillStyle = "#15110E";
     ctx.fillRect(postX, postY, postW, postH);
+
+    // Diagonal hazard warning stripes
+    ctx.fillStyle = "rgba(255, 85, 0, 0.16)";
+    for (let s = -30; s < postW + postH; s += 18) {
+      ctx.beginPath();
+      ctx.moveTo(postX + s, postY);
+      ctx.lineTo(postX + s + 9, postY);
+      ctx.lineTo(postX + s + 9 - postH, postY + postH);
+      ctx.lineTo(postX + s - postH, postY + postH);
+      ctx.fill();
+    }
+
+    // Centered mystery film clapperboard icon
     ctx.fillStyle = "#FF5500";
-    ctx.font = `bold 28px ${SANS_FONT}`;
+    ctx.font = `bold 32px ${SANS_FONT}`;
     ctx.textAlign = "center";
-    ctx.fillText("🎬", postX + postW / 2, postY + postH / 2 + 10);
+    ctx.fillText("🎬", postX + postW / 2, postY + 62);
+
+    // Diagonal Red "TOP SECRET" Die-Cut Tape Stamp
+    ctx.save();
+    ctx.translate(postX + postW / 2, postY + 80);
+    ctx.rotate((-13 * Math.PI) / 180);
+    ctx.fillStyle = "#D32F2F";
+    ctx.fillRect(-46, -12, 92, 24);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.strokeRect(-46, -12, 92, 24);
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `bold 8px ${PIXEL_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillText("TOP SECRET", 0, 4);
+    ctx.restore();
+
+    // Redacted label at bottom
+    ctx.fillStyle = "rgba(253, 227, 207, 0.72)";
+    ctx.font = `bold 7px ${PIXEL_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillText("[REDACTED]", postX + postW / 2, postY + postH - 12);
   }
   ctx.restore();
 
@@ -823,48 +903,114 @@ export async function generateStickerDeckBlob(opts: CardImageOptions): Promise<B
 
   // Dossier Info (Right)
   const infoX = postX + postW + 20;
-  const movieTitle = answer?.title || "Unknown Film";
-  const movieYear = answer?.year ? `(${answer.year})` : "";
 
-  ctx.fillStyle = "#000000";
-  ctx.font = `bold 27px ${SANS_FONT}`;
-  ctx.textAlign = "left";
-  ctx.fillText(`${movieTitle} ${movieYear}`, infoX, dosY + 44);
-
-  // Metadata pills
-  const decade = answer?.year ? `${Math.floor(answer.year / 10) * 10}s ERA` : null;
-  const pills = [
-    answer?.language ? answer.language.toUpperCase() : null,
-    answer?.runtime ? `${answer.runtime} MIN` : null,
-    decade,
-  ].filter(Boolean) as string[];
-
-  let pillX = infoX;
-  const pillY = dosY + 58;
-  for (const pill of pills) {
-    ctx.font = `bold 8.5px ${PIXEL_FONT}`;
-    const pW = ctx.measureText(pill).width + 16;
-    ctx.fillStyle = "#000000";
-    drawRoundedRect(ctx, pillX, pillY, pW, 20, 5);
+  if (isSpoilerFree) {
+    // 🔒 100% SPOILER-FREE CLASSIFIED DOSSIER
+    // 1. Red Stamped Classification Pill
+    ctx.fillStyle = "#D32F2F";
+    drawRoundedRect(ctx, infoX, dosY + 16, 230, 20, 5);
     ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "#000000";
+    drawRoundedRect(ctx, infoX, dosY + 16, 230, 20, 5);
+    ctx.stroke();
 
     ctx.fillStyle = "#FFFFFF";
-    ctx.fillText(pill, pillX + 8, pillY + 14);
-    pillX += pW + 8;
-  }
+    ctx.font = `bold 7.5px ${PIXEL_FONT}`;
+    ctx.textAlign = "left";
+    ctx.fillText("★ TOP SECRET // SPOILER-FREE", infoX + 8, dosY + 30);
 
-  // Movie Facts 2-column strip
-  ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
-  ctx.font = `600 14px ${SANS_FONT}`;
-  if (answer?.director) {
-    ctx.fillText(`Director: ${answer.director}`, infoX, dosY + 106);
-  }
-  if (answer?.cast?.length) {
-    const castLine = `Starring: ${answer.cast.slice(0, 4).join(", ")}`;
-    ctx.fillText(castLine.length > 58 ? castLine.slice(0, 55) + "..." : castLine, infoX, dosY + 130);
-  }
-  if (answer?.genres?.length) {
-    ctx.fillText(`Genre: ${answer.genres.join(" · ")}`, infoX, dosY + 154);
+    // 2. Thick Black Redacted Censor Bar for the Title
+    const decade = answer?.year ? `${Math.floor(answer.year / 10) * 10}s ERA` : "CLASSIC ERA";
+    ctx.fillStyle = "#000000";
+    drawRoundedRect(ctx, infoX, dosY + 42, 260, 30, 5);
+    ctx.fill();
+
+    // Redacted tape text
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.font = `900 13px ${PIXEL_FONT}`;
+    ctx.fillText("████████████", infoX + 10, dosY + 62);
+
+    // Year pill next to censor bar
+    ctx.fillStyle = "#000000";
+    ctx.font = `bold 22px ${SANS_FONT}`;
+    ctx.fillText(`(${answer?.year ?? "????"})`, infoX + 274, dosY + 65);
+
+    // 3. Teaser Spec Pills (Keep Era, Runtime, Language to tease viewers without spoiling title!)
+    const pills = [
+      decade,
+      answer?.runtime ? `${answer.runtime} MIN` : "FEATURE FILM",
+      answer?.language ? answer.language.toUpperCase() : "CINEMA",
+      "DAILY PUZZLE",
+    ].filter(Boolean) as string[];
+
+    let pillX = infoX;
+    const pillY = dosY + 80;
+    for (const pill of pills) {
+      ctx.font = `bold 8px ${PIXEL_FONT}`;
+      const pW = ctx.measureText(pill).width + 16;
+      ctx.fillStyle = "#000000";
+      drawRoundedRect(ctx, pillX, pillY, pW, 19, 5);
+      ctx.fill();
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(pill, pillX + 8, pillY + 13);
+      pillX += pW + 8;
+    }
+
+    // 4. Mystery Challenge Teaser Rows
+    ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
+    ctx.font = `700 13px ${SANS_FONT}`;
+    if (answer?.genres?.length) {
+      ctx.fillText(`Genre: ${answer.genres.join(" · ")}`, infoX, dosY + 118);
+    }
+    ctx.fillText("Director & Cast: ██████████ (Classified to prevent spoilers)", infoX, dosY + 138);
+    ctx.fillStyle = "#D32F2F";
+    ctx.font = `italic 700 13.5px ${SANS_FONT}`;
+    ctx.fillText("Can you name today's movie? Guess at movie-goblin.vercel.app", infoX, dosY + 158);
+  } else {
+    // Revealed Mode
+    const movieTitle = answer?.title || "Unknown Film";
+    const movieYear = answer?.year ? `(${answer.year})` : "";
+
+    ctx.fillStyle = "#000000";
+    ctx.font = `bold 27px ${SANS_FONT}`;
+    ctx.textAlign = "left";
+    ctx.fillText(`${movieTitle} ${movieYear}`, infoX, dosY + 44);
+
+    const decade = answer?.year ? `${Math.floor(answer.year / 10) * 10}s ERA` : null;
+    const pills = [
+      answer?.language ? answer.language.toUpperCase() : null,
+      answer?.runtime ? `${answer.runtime} MIN` : null,
+      decade,
+    ].filter(Boolean) as string[];
+
+    let pillX = infoX;
+    const pillY = dosY + 58;
+    for (const pill of pills) {
+      ctx.font = `bold 8.5px ${PIXEL_FONT}`;
+      const pW = ctx.measureText(pill).width + 16;
+      ctx.fillStyle = "#000000";
+      drawRoundedRect(ctx, pillX, pillY, pW, 20, 5);
+      ctx.fill();
+
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillText(pill, pillX + 8, pillY + 14);
+      pillX += pW + 8;
+    }
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
+    ctx.font = `600 14px ${SANS_FONT}`;
+    if (answer?.director) {
+      ctx.fillText(`Director: ${answer.director}`, infoX, dosY + 106);
+    }
+    if (answer?.cast?.length) {
+      const castLine = `Starring: ${answer.cast.slice(0, 4).join(", ")}`;
+      ctx.fillText(castLine.length > 58 ? castLine.slice(0, 55) + "..." : castLine, infoX, dosY + 130);
+    }
+    if (answer?.genres?.length) {
+      ctx.fillText(`Genre: ${answer.genres.join(" · ")}`, infoX, dosY + 154);
+    }
   }
 
   // ── 4. Main Arcade Die-Cut Sticker Deck ──
