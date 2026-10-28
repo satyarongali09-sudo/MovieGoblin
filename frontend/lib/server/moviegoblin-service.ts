@@ -22,6 +22,7 @@ import {
   getSimilarityLabel,
   getTodayUTC,
   normalizeTitle,
+  normalizeSpelling,
   resolveCandidateMovie,
   searchAttributes,
   searchCatalog,
@@ -128,6 +129,10 @@ function loadBundledCatalogMovies(): CatalogMovie[] {
     if (item.t.includes(":") || item.t.includes(" - ")) {
       const prefix = item.t.split(/[:\-]/)[0].trim();
       if (prefix.length >= 2) aliases.push(prefix);
+    }
+    if (/aa|ee|oo/i.test(item.t)) {
+      const variant = normalizeSpelling(item.t);
+      if (variant !== item.t) aliases.push(variant);
     }
 
     movies.push({

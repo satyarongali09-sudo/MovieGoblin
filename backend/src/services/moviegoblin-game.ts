@@ -483,16 +483,33 @@ function extractSeriesStem(title: string): string {
 function computeFranchiseSimilarity(guess: CatalogMovie, target: CatalogMovie): number {
   const gNorm = normalizeTitle(guess.title);
   const tNorm = normalizeTitle(target.title);
-  if (gNorm === tNorm) return 1.0; // Direct remake (e.g. Batman 1966 vs Batman 1989)
+  if (gNorm === tNorm || normalizeSpelling(gNorm) === normalizeSpelling(tNorm)) return 1.0; // Direct remake or transliteration variant
 
   const gStem = extractSeriesStem(guess.title);
   const tStem = extractSeriesStem(target.title);
-  if (gStem.length >= 3 && gStem === tStem) return 1.0; // Direct sequel (e.g. Godfather vs Godfather Part II, Baahubali 1 vs 2)
+  if (
+    gStem.length >= 3 &&
+    (gStem === tStem || normalizeSpelling(gStem) === normalizeSpelling(tStem))
+  ) {
+    return 1.0; // Direct sequel (e.g. Godfather vs Godfather Part II, Baahubali 1 vs 2, Bahubali vs Baahubali 2)
+  }
 
-  // Check if either movie's aliases reference the other's title/stem
+  // Check if either movie's aliases reference the other's title/stem (including spelling variations)
   const gAliases = guess.aliases.map(normalizeTitle);
   const tAliases = target.aliases.map(normalizeTitle);
-  if (gAliases.includes(tNorm) || tAliases.includes(gNorm) || gAliases.includes(tStem) || tAliases.includes(gStem)) {
+  const gAliasesFold = gAliases.map(normalizeSpelling);
+  const tAliasesFold = tAliases.map(normalizeSpelling);
+  const gNormFold = normalizeSpelling(gNorm);
+  const tNormFold = normalizeSpelling(tNorm);
+  const gStemFold = normalizeSpelling(gStem);
+  const tStemFold = normalizeSpelling(tStem);
+
+  if (
+    gAliases.includes(tNorm) || tAliases.includes(gNorm) ||
+    gAliases.includes(tStem) || tAliases.includes(gStem) ||
+    gAliasesFold.includes(tNormFold) || tAliasesFold.includes(gNormFold) ||
+    gAliasesFold.includes(tStemFold) || tAliasesFold.includes(gStemFold)
+  ) {
     return 0.85;
   }
 

@@ -135,10 +135,32 @@ export function metaKey(title: string, year: number): string {
   return `${normalizeTitle(title)}::${year}`;
 }
 
+export function foldedMetaKey(title: string, year: number): string {
+  return `${normalizeSpelling(normalizeTitle(title))}::${year}`;
+}
+
 const catalogMap = new Map<string, { t: string; y: number; d?: string; l?: string; o?: string; pu?: string }>();
+const foldedCatalogMap = new Map<string, { t: string; y: number; d?: string; l?: string; o?: string; pu?: string }>();
+
 for (const m of (catalogIndex.movies ?? []) as Array<{ t: string; y: number; d?: string; l?: string; o?: string; pu?: string }>) {
   if (m.t && m.y) {
-    catalogMap.set(metaKey(m.t, m.y), m);
+    const k = metaKey(m.t, m.y);
+    const fk = foldedMetaKey(m.t, m.y);
+    catalogMap.set(k, m);
+    if (!foldedCatalogMap.has(fk) || (m.d && !foldedCatalogMap.get(fk)?.d)) {
+      foldedCatalogMap.set(fk, m);
+    }
+  }
+}
+
+const foldedMovieMeta = new Map<string, MovieMeta>();
+for (const [k, v] of Object.entries(MOVIE_META)) {
+  const [t, y] = k.split("::");
+  if (t && y) {
+    const fk = `${normalizeSpelling(t)}::${y}`;
+    if (!foldedMovieMeta.has(fk) || (v.director && !foldedMovieMeta.get(fk)?.director)) {
+      foldedMovieMeta.set(fk, v);
+    }
   }
 }
 
@@ -298,9 +320,14 @@ const EMPTY_META: MovieMeta = { cast: [] };
 
 export function getMovieMeta(movie: { title: string; year: number }): MovieMeta {
   const key = metaKey(movie.title, movie.year);
-  const curated = MOVIE_META[key];
-  const csvMeta = loadCsvMetaIfNeeded()[key];
-  const catItem = catalogMap.get(key);
+  const fKey = foldedMetaKey(movie.title, movie.year);
+  const curated = MOVIE_META[key] ?? foldedMovieMeta.get(fKey);
+  const csvMetaMap = loadCsvMetaIfNeeded();
+  const csvMeta = csvMetaMap[key] ?? (fKey ? Object.entries(csvMetaMap).find(([k]) => {
+    const [t, y] = k.split("::");
+    return y === String(movie.year) && normalizeSpelling(t) === normalizeSpelling(normalizeTitle(movie.title));
+  })?.[1] : undefined);
+  const catItem = catalogMap.get(key) ?? foldedCatalogMap.get(fKey);
 
   const fallbackMeta: MovieMeta = {
     cast: [],
@@ -697,15 +724,32 @@ function extractSeriesStem(title: string): string {
 function computeFranchiseSimilarity(guess: CatalogMovie, target: CatalogMovie): number {
   const gNorm = normalizeTitle(guess.title);
   const tNorm = normalizeTitle(target.title);
-  if (gNorm === tNorm) return 1.0;
+  if (gNorm === tNorm || normalizeSpelling(gNorm) === normalizeSpelling(tNorm)) return 1.0;
 
   const gStem = extractSeriesStem(guess.title);
   const tStem = extractSeriesStem(target.title);
-  if (gStem.length >= 3 && gStem === tStem) return 1.0;
+  if (
+    gStem.length >= 3 &&
+    (gStem === tStem || normalizeSpelling(gStem) === normalizeSpelling(tStem))
+  ) {
+    return 1.0;
+  }
 
   const gAliases = guess.aliases.map(normalizeTitle);
   const tAliases = target.aliases.map(normalizeTitle);
-  if (gAliases.includes(tNorm) || tAliases.includes(gNorm) || gAliases.includes(tStem) || tAliases.includes(gStem)) {
+  const gAliasesFold = gAliases.map(normalizeSpelling);
+  const tAliasesFold = tAliases.map(normalizeSpelling);
+  const gNormFold = normalizeSpelling(gNorm);
+  const tNormFold = normalizeSpelling(tNorm);
+  const gStemFold = normalizeSpelling(gStem);
+  const tStemFold = normalizeSpelling(tStem);
+
+  if (
+    gAliases.includes(tNorm) || tAliases.includes(gNorm) ||
+    gAliases.includes(tStem) || tAliases.includes(gStem) ||
+    gAliasesFold.includes(tNormFold) || tAliasesFold.includes(gNormFold) ||
+    gAliasesFold.includes(tStemFold) || tAliasesFold.includes(gStemFold)
+  ) {
     return 0.85;
   }
 

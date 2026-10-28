@@ -58,7 +58,7 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "language": "French",
     "runtime": 122,
     "originalTitle": "Le fabuleux destin d'Amélie Poulain",
-    "poster_url": "https://image.tmdb.org/t/p/original/oTKduWL2tpIKEmkAqF4mFEAWAsv.jpg",
+    "poster_url": "https://image.tmdb.org/t/p/original/afkQLjA05RPnFZ5g8Z1CkgBwVnT.jpg",
     "popularity": 36.848,
     "vote_count": 9515,
     "vote_average": 7.9
@@ -116,6 +116,32 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "vote_count": 16257,
     "vote_average": 8.3
   },
+  "bahubali 2 the conclusion::2017": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "Prabhas",
+      "Rana Daggubati",
+      "Anushka Shetty",
+      "Tamannaah Bhatia",
+      "Ramya Krishnan"
+    ],
+    "language": "Telugu",
+    "runtime": 167,
+    "poster_url": "https://image.tmdb.org/t/p/original/21sC2assImQIYCEDA84Qh9d1RsK.jpg"
+  },
+  "bahubali the beginning::2015": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "Prabhas",
+      "Rana Daggubati",
+      "Anushka Shetty",
+      "Tamannaah Bhatia",
+      "Ramya Krishnan"
+    ],
+    "language": "Telugu",
+    "runtime": 159,
+    "poster_url": "https://image.tmdb.org/t/p/original/9O7gLzmreU0nGkIB6K3BsJbzvNv.jpg"
+  },
   "batman::1966": {
     "director": "Leslie H. Martinson",
     "cast": [
@@ -128,7 +154,7 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     ],
     "language": "English",
     "runtime": 105,
-    "poster_url": "https://image.tmdb.org/t/p/original/jV4grL9Sxd2QA6oCOyIzdmVAJvp.jpg",
+    "poster_url": "https://image.tmdb.org/t/p/original/7k2V0i3c2a1o1H5E6D8A2u5p9lA.jpg",
     "popularity": 48.251,
     "vote_count": 625,
     "vote_average": 6.3
@@ -145,10 +171,21 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     ],
     "language": "English",
     "runtime": 126,
-    "poster_url": "https://image.tmdb.org/t/p/original/jUhGHv4YihieVjhU2TmFaBsZ4Xg.jpg",
+    "poster_url": "https://image.tmdb.org/t/p/original/cij4dd21v2Rk2URHpDgExiACgHQ.jpg",
     "popularity": 338.272,
     "vote_count": 6109,
     "vote_average": 7.2
+  },
+  "chatrapathi::2005": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "Prabhas",
+      "Shriya Saran",
+      "Bhanupriya",
+      "Pradeep Rawat"
+    ],
+    "language": "Telugu",
+    "runtime": 158
   },
   "clueless::1995": {
     "director": "Amy Heckerling",
@@ -421,6 +458,17 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "language": "Telugu",
     "runtime": 177
   },
+  "maryada ramanna::2010": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "Sunil",
+      "Saloni Aswani",
+      "Nagineedu",
+      "Supreeth"
+    ],
+    "language": "Telugu",
+    "runtime": 140
+  },
   "matrix::1999": {
     "director": "The Wachowskis",
     "cast": [
@@ -497,6 +545,20 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "language": "Telugu",
     "runtime": 170
   },
+  "rrr::2022": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "N. T. Rama Rao Jr.",
+      "Ram Charan",
+      "Alia Bhatt",
+      "Ajay Devgn",
+      "Shriya Saran",
+      "Samuthirakani"
+    ],
+    "language": "Telugu",
+    "runtime": 187,
+    "poster_url": "https://image.tmdb.org/t/p/original/wE0q27Y0AE9QU2E6759hR9O3wA3.jpg"
+  },
   "shawshank redemption::1994": {
     "director": "Frank Darabont",
     "cast": [
@@ -536,6 +598,17 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "vote_count": 13012,
     "vote_average": 8.3
   },
+  "simhadri::2003": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "N. T. Rama Rao Jr.",
+      "Bhumika Chawla",
+      "Ankitha",
+      "Mukesh Rishi"
+    ],
+    "language": "Telugu",
+    "runtime": 168
+  },
   "spirited away::2001": {
     "director": "Hayao Miyazaki",
     "cast": [
@@ -566,6 +639,17 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "language": "English",
     "runtime": 121,
     "poster_url": "https://image.tmdb.org/t/p/original/6FfCtAuVAW8XJjZ7eWeLibRLWTw.jpg"
+  },
+  "sye::2004": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "Nithiin",
+      "Genelia D'Souza",
+      "Pradeep Rawat",
+      "Shashank"
+    ],
+    "language": "Telugu",
+    "runtime": 151
   },
   "titanic::1997": {
     "director": "James Cameron",
@@ -600,6 +684,17 @@ export const MOVIE_META: Record<string, MovieMeta> = {
     "popularity": 171.714,
     "vote_count": 15127,
     "vote_average": 8
+  },
+  "vikramarkudu::2006": {
+    "director": "S. S. Rajamouli",
+    "cast": [
+      "Ravi Teja",
+      "Anushka Shetty",
+      "Vineet Kumar",
+      "Brahmanandam"
+    ],
+    "language": "Telugu",
+    "runtime": 140
   },
   "whiplash::2014": {
     "director": "Damien Chazelle",

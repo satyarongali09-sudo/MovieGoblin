@@ -396,5 +396,38 @@ describe("MovieGoblin Gameplay Features", () => {
         );
       }
     });
+
+    test("franchise sequel with transliteration variation (Bahubali 1 vs Baahubali 2) scores >= 90% with Director and Cast hints", () => {
+      const full = mergeCatalogWithCombinedCsv(movies);
+      const baahubali2 = full.find((m) => m.title === "Baahubali 2: The Conclusion")!;
+      const bahubali1 = full.find((m) => m.title === "Bahubali: The Beginning" || m.title === "Baahubali: The Beginning")!;
+      assert.ok(baahubali2, "Baahubali 2 must exist");
+      assert.ok(bahubali1, "Bahubali 1 must exist");
+
+      const hints = buildGuessHints(bahubali1, baahubali2);
+      assert.strictEqual(hints.director, "S. S. Rajamouli");
+      assert.ok(hints.cast.length >= 3, `Expected at least 3 cast matches, got ${hints.cast.length}`);
+      assert.strictEqual(hints.language, "Telugu");
+
+      const cosine = cosineSimilarity(bahubali1.embedding, baahubali2.embedding);
+      const score = computeMatchPercent(bahubali1, baahubali2, cosine);
+      assert.ok(score >= 90, `Expected Bahubali 1 vs 2 to score >= 90%, got ${score}%`);
+    });
+
+    test("shared director across different franchises (RRR vs Baahubali 2 by S. S. Rajamouli) triggers director hint and scores >= 50%", () => {
+      const full = mergeCatalogWithCombinedCsv(movies);
+      const baahubali2 = full.find((m) => m.title === "Baahubali 2: The Conclusion")!;
+      const rrr = full.find((m) => m.title === "RRR")!;
+      assert.ok(baahubali2, "Baahubali 2 must exist");
+      assert.ok(rrr, "RRR must exist");
+
+      const hints = buildGuessHints(rrr, baahubali2);
+      assert.strictEqual(hints.director, "S. S. Rajamouli");
+      assert.strictEqual(hints.language, "Telugu");
+
+      const cosine = cosineSimilarity(rrr.embedding, baahubali2.embedding);
+      const score = computeMatchPercent(rrr, baahubali2, cosine);
+      assert.ok(score >= 50, `Expected RRR vs Baahubali 2 to score >= 50%, got ${score}%`);
+    });
   });
 });

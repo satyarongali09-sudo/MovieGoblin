@@ -251,6 +251,54 @@ async function main() {
       language: "Telugu",
       runtime: 159,
     },
+    "bahubali 2 the conclusion::2017": {
+      director: "S. S. Rajamouli",
+      cast: ["Prabhas", "Rana Daggubati", "Anushka Shetty", "Tamannaah Bhatia", "Ramya Krishnan"],
+      language: "Telugu",
+      runtime: 167,
+    },
+    "bahubali the beginning::2015": {
+      director: "S. S. Rajamouli",
+      cast: ["Prabhas", "Rana Daggubati", "Anushka Shetty", "Tamannaah Bhatia", "Ramya Krishnan"],
+      language: "Telugu",
+      runtime: 159,
+    },
+    "rrr::2022": {
+      director: "S. S. Rajamouli",
+      cast: ["N. T. Rama Rao Jr.", "Ram Charan", "Alia Bhatt", "Ajay Devgn", "Shriya Saran", "Samuthirakani"],
+      language: "Telugu",
+      runtime: 187,
+    },
+    "chatrapathi::2005": {
+      director: "S. S. Rajamouli",
+      cast: ["Prabhas", "Shriya Saran", "Bhanupriya", "Pradeep Rawat"],
+      language: "Telugu",
+      runtime: 158,
+    },
+    "vikramarkudu::2006": {
+      director: "S. S. Rajamouli",
+      cast: ["Ravi Teja", "Anushka Shetty", "Vineet Kumar", "Brahmanandam"],
+      language: "Telugu",
+      runtime: 140,
+    },
+    "simhadri::2003": {
+      director: "S. S. Rajamouli",
+      cast: ["N. T. Rama Rao Jr.", "Bhumika Chawla", "Ankitha", "Mukesh Rishi"],
+      language: "Telugu",
+      runtime: 168,
+    },
+    "sye::2004": {
+      director: "S. S. Rajamouli",
+      cast: ["Nithiin", "Genelia D'Souza", "Pradeep Rawat", "Shashank"],
+      language: "Telugu",
+      runtime: 151,
+    },
+    "maryada ramanna::2010": {
+      director: "S. S. Rajamouli",
+      cast: ["Sunil", "Saloni Aswani", "Nagineedu", "Supreeth"],
+      language: "Telugu",
+      runtime: 140,
+    },
     "eega::2012": {
       director: "S. S. Rajamouli",
       cast: ["Nani", "Samantha Ruth Prabhu", "Sudeep"],
@@ -288,6 +336,8 @@ async function main() {
     "amelie::2001": "https://image.tmdb.org/t/p/original/afkQLjA05RPnFZ5g8Z1CkgBwVnT.jpg",
     "baahubali the beginning::2015": "https://image.tmdb.org/t/p/original/9O7gLzmreU0nGkIB6K3BsJbzvNv.jpg",
     "baahubali 2 the conclusion::2017": "https://image.tmdb.org/t/p/original/21sC2assImQIYCEDA84Qh9d1RsK.jpg",
+    "bahubali the beginning::2015": "https://image.tmdb.org/t/p/original/9O7gLzmreU0nGkIB6K3BsJbzvNv.jpg",
+    "bahubali 2 the conclusion::2017": "https://image.tmdb.org/t/p/original/21sC2assImQIYCEDA84Qh9d1RsK.jpg",
     "rrr::2022": "https://image.tmdb.org/t/p/original/wE0q27Y0AE9QU2E6759hR9O3wA3.jpg",
     "eega::2012": "https://image.tmdb.org/t/p/original/7xW8qH4A9z6e3X6q1D6v6n2Q9W3.jpg",
     "magadheera::2009": "https://image.tmdb.org/t/p/original/s4h6K3j2l1D7c9y8m4h3Q5k7v1.jpg",
@@ -295,10 +345,10 @@ async function main() {
   };
 
   for (const [k, v] of Object.entries(OVERRIDES)) {
-    if (wanted.has(k)) out[k] = { ...out[k], ...v };
+    out[k] = { ...out[k], ...v };
   }
   for (const [k, url] of Object.entries(POSTER_OVERRIDES)) {
-    if (out[k] && !out[k].poster_url) out[k].poster_url = url;
+    if (out[k]) out[k].poster_url = url;
   }
 
   const missing = [...wanted].filter((k) => !out[k]);
@@ -402,7 +452,7 @@ async function main() {
       .split(/[|,]/)
       .map((g) => g.trim())
       .filter(Boolean);
-    const poster = map9000.get(key)?.poster || POSTER_OVERRIDES[key];
+    const poster = POSTER_OVERRIDES[key] || map9000.get(key)?.poster;
 
     if (director) directorsSet.add(director);
     cast.forEach((c) => actorsSet.add(c));
