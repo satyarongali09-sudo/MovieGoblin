@@ -66,6 +66,101 @@ function yearBadge(relation: "same" | "earlier" | "later", year: number) {
   return { symbol: "▼", title: `Today's film was released before ${year}` };
 }
 
+type WarmthTier = {
+  tier: "exact" | "volcanic" | "hot" | "warm" | "cold";
+  label: string;
+  badgeClass: string;
+  color: string;
+  icon: string;
+  guidance: string;
+};
+
+function getWarmthTier(similarity: number, isCorrect: boolean): WarmthTier {
+  if (isCorrect || similarity >= 100) {
+    return {
+      tier: "exact",
+      label: "TARGET IDENTIFIED",
+      badgeClass: "is-exact",
+      color: "#38ef7d",
+      icon: "🎯",
+      guidance: "Direct 100% semantic match! Mission passed.",
+    };
+  }
+  if (similarity >= 85) {
+    return {
+      tier: "volcanic",
+      label: "VOLCANIC MATCH",
+      badgeClass: "is-volcanic",
+      color: "#FF3300",
+      icon: "💥",
+      guidance: "Extremely hot! Same cinematic universe, auteur, or primary leads.",
+    };
+  }
+  if (similarity >= 65) {
+    return {
+      tier: "hot",
+      label: "HOT SIGNAL",
+      badgeClass: "is-hot",
+      color: "#FF7700",
+      icon: "🔥",
+      guidance: "Strong creative overlap. Check the decade and shared ensemble.",
+    };
+  }
+  if (similarity >= 40) {
+    return {
+      tier: "warm",
+      label: "WARM TRACE",
+      badgeClass: "is-warm",
+      color: "#E5A000",
+      icon: "⚡",
+      guidance: "Moderate thematic link. Compare genres and chronology.",
+    };
+  }
+  return {
+    tier: "cold",
+    label: "COLD DRIFT",
+    badgeClass: "is-cold",
+    color: "#4A90E2",
+    icon: "❄️",
+    guidance: "Distantly related or different era. Re-evaluate case file clues.",
+  };
+}
+
+function formatYearClue(year: {
+  value: number;
+  relation: "same" | "earlier" | "later";
+  decadeMatch: boolean;
+  within5: boolean;
+}) {
+  if (year.relation === "same") {
+    return {
+      symbol: "🎯",
+      shortLabel: `${year.value} [EXACT YEAR]`,
+      detailText: `Exact match: Target movie was released in ${year.value}.`,
+      isMatch: true,
+      badgeClass: "is-match",
+    };
+  }
+  if (year.relation === "later") {
+    const proximity = year.within5 ? " · WITHIN 5 YRS" : year.decadeMatch ? " · SAME DECADE" : "";
+    return {
+      symbol: "⬆️",
+      shortLabel: `${year.value} [TARGET NEWER${proximity}]`,
+      detailText: `Target film was released AFTER ${year.value}${year.within5 ? " (within 5 years!)" : year.decadeMatch ? " (same decade)" : ""}.`,
+      isMatch: false,
+      badgeClass: year.within5 ? "is-close" : "is-directional",
+    };
+  }
+  const proximity = year.within5 ? " · WITHIN 5 YRS" : year.decadeMatch ? " · SAME DECADE" : "";
+  return {
+    symbol: "⬇️",
+    shortLabel: `${year.value} [TARGET OLDER${proximity}]`,
+    detailText: `Target film was released BEFORE ${year.value}${year.within5 ? " (within 5 years!)" : year.decadeMatch ? " (same decade)" : ""}.`,
+    isMatch: false,
+    badgeClass: year.within5 ? "is-close" : "is-directional",
+  };
+}
+
 function attrBadgeCode(kind: AttributeKind): string {
   switch (kind) {
     case "director":
@@ -538,13 +633,19 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
               <span>{dateLabel}</span>
             </div>
 
-            <div className="mg-sc-hero-wordmark">
-              <div className="mg-sc-hero-line1">
-                <span>RANK {breakdown.rank}</span>
-                <sup className="mg-sc-reg">®</sup>
+            <div className="mg-sc-front-hero-wrap">
+              <div className="mg-sc-front-avatar-badge" title="Agent Profile PFP">
+                <img src="/cat-action.png" alt="Agent Cat" className="mg-sc-front-avatar-img" />
+                <span className="mg-sc-front-avatar-tag">AGENT 009</span>
               </div>
-              <div className="mg-sc-hero-line2">
-                {breakdown.total} PTS
+              <div className="mg-sc-hero-wordmark">
+                <div className="mg-sc-hero-line1">
+                  <span>RANK {breakdown.rank}</span>
+                  <sup className="mg-sc-reg">®</sup>
+                </div>
+                <div className="mg-sc-hero-line2">
+                  {breakdown.total} PTS
+                </div>
               </div>
             </div>
 
@@ -558,28 +659,20 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
           <div ref={backCardRef} className="mg-sc-face mg-sc-back" aria-hidden={!flipped}>
             <div className="mg-sc-back-frame">
               <div className="mg-sc-back-top">
-                {/* Left Portrait / Pixel Mascot Well */}
-                <div className="mg-sc-portrait">
-                  {posterUrl && !imgFailed ? (
+                {/* Left Portrait: Legendary Action Cat Pixel PFP */}
+                <div className="mg-sc-portrait" title="Agent PFP: Action Cat // Feline Fury">
+                  <div className="mg-sc-portrait-stage">
                     <img
-                      src={posterUrl}
-                      alt={answer?.title ?? "Movie poster"}
-                      className="mg-sc-portrait-img"
-                      crossOrigin="anonymous"
-                      referrerPolicy="no-referrer"
-                      onError={() => setImgFailed(true)}
+                      src="/cat-action.png"
+                      alt="Action Cat PFP"
+                      className="mg-sc-portrait-img mg-sc-cat-avatar"
                     />
-                  ) : (
-                    <div className="mg-sc-mascot" aria-hidden="true">
-                      <svg viewBox="0 0 16 16" className="mg-sc-mascot-svg">
-                        <path
-                          fill="currentColor"
-                          d="M4 1h8v2h2v3h1v4h-1v3h-2v2H4v-2H2v-3H1V6h1V3h2V1zm1 3v2H3v4h2v2h6v-2h2V6h-2V4H5zm1 2h2v2H6V6zm4 0h2v2h-2V6zm-3 4h4v1H7v-1z"
-                        />
-                      </svg>
-                      <span>RANK {breakdown.rank}</span>
+                    <div className="mg-sc-scanlines" aria-hidden="true" />
+                    <div className="mg-sc-pfp-kicker">
+                      <span className="mg-pfp-dot" />
+                      <span>AGENT 009</span>
                     </div>
-                  )}
+                  </div>
                   <span className="mg-sc-portrait-tag">RANK {breakdown.rank}</span>
                 </div>
 
@@ -742,6 +835,7 @@ export function WordGoblinGame() {
   // Case File visibility
   const [caseFileVisible, setCaseFileVisible] = useState(true);
   const [copiedShare, setCopiedShare] = useState(false);
+  const [expandedGuessIndex, setExpandedGuessIndex] = useState<number | null>(null);
 
   // Combobox state: supports all 6,154 catalog movies (from 1 character) + attributes (Director, Actor, Year, Genre, Language)
   const [query, setQuery] = useState("");
@@ -1750,10 +1844,18 @@ export function WordGoblinGame() {
                     {/* Guess History Log */}
                     <section className="mg-history-section" aria-label="Guess history">
                       <div className="mg-history-header">
-                        <span>
-                          {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}
-                        </span>
-                        <span>Match %</span>
+                        <div className="mg-history-header-left">
+                          <span className="mg-history-radar-dot" aria-hidden="true" />
+                          <span className="mg-history-title">
+                            RADAR LOG // {guesses.length} {guesses.length === 1 ? "GUESS LOGGED" : "GUESSES LOGGED"}
+                          </span>
+                        </div>
+                        <div className="mg-history-header-right">
+                          <span className="mg-history-top-score">
+                            TOP PROXIMITY: <strong>{bestSimilarity >= 0 ? `${bestSimilarity}%` : "--"}</strong>
+                          </span>
+                          <span className="mg-history-expand-hint">TAP GUESS FOR INTEL ▼</span>
+                        </div>
                       </div>
 
                       {guesses.length > 0 ? (
@@ -1763,98 +1865,217 @@ export function WordGoblinGame() {
                             const h = item.hints;
                             const filled = Math.round((item.similarity / 100) * SCORE_SEGMENTS);
                             const isBest = !item.isCorrect && item.similarity === bestSimilarity && bestSimilarity >= 0;
+                            const warmth = getWarmthTier(item.similarity, item.isCorrect);
+                            const yearClue = h ? formatYearClue(h.year) : null;
+                            const isExpanded = expandedGuessIndex === originalIndex;
+                            const guessPoster = item.poster_url || findLocalPoster(item.matchedTitle || item.guess);
+
                             return (
                               <div
                                 key={`guess-${originalIndex}-${item.guess}`}
-                                className={`mg-guess-item ${item.isCorrect ? "mg-guess-item-correct" : ""}`}
+                                className={`mg-guess-card ${item.isCorrect ? "is-correct" : ""} ${isExpanded ? "is-expanded" : ""}`}
                               >
-                                <div className="mg-guess-main">
-                                  <div className="mg-guess-left">
+                                <div
+                                  className="mg-guess-card-top"
+                                  onClick={() => setExpandedGuessIndex((cur) => cur === originalIndex ? null : originalIndex)}
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-expanded={isExpanded}
+                                  aria-label={`Guess ${originalIndex}: ${item.matchedTitle || item.guess}, ${item.similarity}% match. Tap to inspect radar breakdown.`}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter" || e.key === " ") {
+                                      e.preventDefault();
+                                      setExpandedGuessIndex((cur) => cur === originalIndex ? null : originalIndex);
+                                    }
+                                  }}
+                                >
+                                  <div className="mg-guess-top-left">
                                     <span className="mg-guess-index">{String(originalIndex).padStart(2, "0")}</span>
-                                    {(() => {
-                                      const guessPoster = item.poster_url || findLocalPoster(item.matchedTitle || item.guess);
-                                      if (!guessPoster) return null;
-                                      return (
-                                        <div className="mg-guess-thumb-wrap">
-                                          <img
-                                            src={guessPoster}
-                                            alt=""
-                                            className="mg-guess-thumb"
-                                            loading="lazy"
-                                            referrerPolicy="no-referrer"
-                                            onError={(e) => {
-                                              const wrap = (e.currentTarget as HTMLElement).closest(".mg-guess-thumb-wrap") as HTMLElement | null;
-                                              if (wrap) wrap.style.display = "none";
-                                            }}
-                                          />
-                                        </div>
-                                      );
-                                    })()}
-                                    <span className="mg-guess-title" title={item.matchedTitle || item.guess}>
-                                      {item.matchedTitle || item.guess}
-                                    </span>
-                                    {isBest && <span className="mg-best-tag">Best</span>}
-                                    {item.isCorrect && (
-                                      <span className="mg-mini-sticker mg-mini-sticker-pass">
-                                        MISSION PASSED!
-                                      </span>
-                                    )}
-                                    {!item.isCorrect && item.similarity >= 80 && (
-                                      <span className="mg-mini-sticker mg-mini-sticker-hot">
-                                        🔥 CLOSE MATCH
-                                      </span>
-                                    )}
-                                    {/* Show attribute hint badges inline next to movie name to save vertical space */}
-                                    {h && (caseFileVisible || isGameOver) && (
-                                      <div className="mg-hints">
-                                        {h.director && (
-                                          <span className="mg-badge mg-badge-d is-found" title={`Same director: ${h.director}`}>
-                                            D
-                                          </span>
-                                        )}
-                                        {h.cast.length > 0 && (
-                                          <span
-                                            className="mg-badge mg-badge-star is-found"
-                                            title={`Shared actors: ${h.cast.join(", ")}`}
-                                          >
-                                            ★{h.cast.length > 1 ? h.cast.length : ""}
-                                          </span>
-                                        )}
-                                        {h.language && (
-                                          <span className="mg-badge is-found" title={`Same language: ${h.language}`}>
-                                            {h.language.slice(0, 3).toUpperCase()}
-                                          </span>
-                                        )}
-                                        {(() => {
-                                          const y = yearBadge(h.year.relation, h.year.value);
-                                          return (
-                                            <span
-                                              className={
-                                                h.year.relation === "same" || h.year.within5
-                                                  ? "mg-badge mg-badge-year is-found"
-                                                  : "mg-badge mg-badge-year"
-                                              }
-                                              title={y.title}
-                                            >
-                                              {y.symbol} {h.year.value}
-                                            </span>
-                                          );
-                                        })()}
+                                    {guessPoster && (
+                                      <div className="mg-guess-thumb-wrap">
+                                        <img
+                                          src={guessPoster}
+                                          alt=""
+                                          className="mg-guess-thumb"
+                                          loading="lazy"
+                                          referrerPolicy="no-referrer"
+                                          onError={(e) => {
+                                            const wrap = (e.currentTarget as HTMLElement).closest(".mg-guess-thumb-wrap") as HTMLElement | null;
+                                            if (wrap) wrap.style.display = "none";
+                                          }}
+                                        />
                                       </div>
                                     )}
+                                    <div className="mg-guess-title-group">
+                                      <div className="mg-guess-title-row">
+                                        <span className="mg-guess-title" title={item.matchedTitle || item.guess}>
+                                          {item.matchedTitle || item.guess}
+                                        </span>
+                                        {isBest && <span className="mg-best-tag">TOP MATCH</span>}
+                                        <span className={`mg-warmth-pill ${warmth.badgeClass}`}>
+                                          <span className="mg-warmth-icon">{warmth.icon}</span>
+                                          <span>{warmth.label}</span>
+                                        </span>
+                                      </div>
+
+                                      {/* Tactical Clue Chips (Always visible when hints present) */}
+                                      {h && (caseFileVisible || isGameOver) && (
+                                        <div className="mg-guess-clue-bar">
+                                          {yearClue && (
+                                            <span className={`mg-guess-chip mg-chip-year ${yearClue.badgeClass}`} title={yearClue.detailText}>
+                                              <span className="mg-chip-icon">{yearClue.symbol}</span>
+                                              <span className="mg-chip-text">{yearClue.shortLabel}</span>
+                                            </span>
+                                          )}
+
+                                          {h.director && (
+                                            <span className="mg-guess-chip mg-chip-director is-match" title={`Same director: ${h.director}`}>
+                                              <span className="mg-chip-icon">🎬</span>
+                                              <span className="mg-chip-text">AUTEUR: {h.director}</span>
+                                            </span>
+                                          )}
+
+                                          {h.cast.length > 0 && (
+                                            <span className="mg-guess-chip mg-chip-cast is-match" title={`Shared cast: ${h.cast.join(", ")}`}>
+                                              <span className="mg-chip-icon">👥</span>
+                                              <span className="mg-chip-text">
+                                                CAST: {h.cast.slice(0, 2).join(", ")}
+                                                {h.cast.length > 2 ? ` (+${h.cast.length - 2})` : ""}
+                                              </span>
+                                            </span>
+                                          )}
+
+                                          {h.genres.length > 0 && (
+                                            <span className="mg-guess-chip mg-chip-genre" title={`Shared genres: ${h.genres.join(", ")}`}>
+                                              <span className="mg-chip-icon">🏷️</span>
+                                              <span className="mg-chip-text">{h.genres.slice(0, 2).join(" · ")}</span>
+                                            </span>
+                                          )}
+
+                                          {h.language && (
+                                            <span className="mg-guess-chip mg-chip-lang" title={`Language: ${h.language}`}>
+                                              <span className="mg-chip-icon">🌐</span>
+                                              <span className="mg-chip-text">{h.language}</span>
+                                            </span>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="mg-guess-right">
-                                    <div className="mg-proximity-bar" aria-hidden="true">
+
+                                  <div className="mg-guess-top-right">
+                                    <div className={`mg-proximity-bar ${warmth.badgeClass}`} aria-hidden="true">
                                       {Array.from({ length: SCORE_SEGMENTS }, (_, i) => (
                                         <span
                                           key={i}
-                                          className={i < filled ? "mg-proximity-seg is-filled" : "mg-proximity-seg"}
+                                          className={i < filled ? `mg-proximity-seg is-filled ${warmth.badgeClass}` : "mg-proximity-seg"}
                                         />
                                       ))}
                                     </div>
-                                    <span className="mg-guess-score">{item.similarity}%</span>
+                                    <span className={`mg-guess-score ${warmth.badgeClass}`}>{item.similarity}%</span>
+                                    <span className="mg-guess-expand-pill">
+                                      {isExpanded ? "▲ INTEL" : "▼ INTEL"}
+                                    </span>
                                   </div>
                                 </div>
+
+                                {/* Expanded Tactical Intel Drawer */}
+                                {isExpanded && (
+                                  <div className="mg-guess-drawer">
+                                    <div className="mg-guess-drawer-header">
+                                      <span className="mg-drawer-kicker">★ TACTICAL RADAR INTEL · COMPARATIVE TELEMETRY</span>
+                                      <span className="mg-drawer-status" style={{ color: warmth.color }}>
+                                        {warmth.icon} {warmth.label} ({item.similarity}%)
+                                      </span>
+                                    </div>
+
+                                    <div className="mg-guess-drawer-grid">
+                                      {/* Year Timeline Intel */}
+                                      {yearClue && (
+                                        <div className="mg-drawer-cell">
+                                          <span className="mg-drawer-cell-label">CHRONOLOGY MATRIX</span>
+                                          <div className="mg-drawer-cell-val">
+                                            <span className="mg-drawer-cell-headline">{yearClue.shortLabel}</span>
+                                            <span className="mg-drawer-cell-desc">{yearClue.detailText}</span>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Director Intel */}
+                                      <div className="mg-drawer-cell">
+                                        <span className="mg-drawer-cell-label">AUTEUR / DIRECTOR</span>
+                                        <div className="mg-drawer-cell-val">
+                                          {h?.director ? (
+                                            <>
+                                              <span className="mg-drawer-cell-headline is-match">✓ {h.director}</span>
+                                              <span className="mg-drawer-cell-desc">Matches target movie director exactly!</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <span className="mg-drawer-cell-headline is-diff">≠ DISTINCT AUTEUR</span>
+                                              <span className="mg-drawer-cell-desc">Target movie is directed by a different filmmaker.</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Cast Intel */}
+                                      <div className="mg-drawer-cell">
+                                        <span className="mg-drawer-cell-label">ENSEMBLE CAST OVERLAP</span>
+                                        <div className="mg-drawer-cell-val">
+                                          {h?.cast && h.cast.length > 0 ? (
+                                            <>
+                                              <div className="mg-drawer-actors">
+                                                {h.cast.map((actor) => (
+                                                  <span key={actor} className="mg-drawer-actor-pill">
+                                                    ★ {actor}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                              <span className="mg-drawer-cell-desc">
+                                                {h.cast.length} shared ensemble actor{h.cast.length === 1 ? "" : "s"} intercepted!
+                                              </span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <span className="mg-drawer-cell-headline is-diff">NO COMMON ACTORS RECORDED</span>
+                                              <span className="mg-drawer-cell-desc">Zero overlapping cast members between these films.</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Genres Intel */}
+                                      <div className="mg-drawer-cell">
+                                        <span className="mg-drawer-cell-label">THEMATIC SPECTRUM</span>
+                                        <div className="mg-drawer-cell-val">
+                                          {h?.genres && h.genres.length > 0 ? (
+                                            <>
+                                              <div className="mg-drawer-genres">
+                                                {h.genres.map((g) => (
+                                                  <span key={g} className="mg-drawer-genre-pill">
+                                                    {g}
+                                                  </span>
+                                                ))}
+                                              </div>
+                                              <span className="mg-drawer-cell-desc">Shared genre DNA matches today's secret film.</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <span className="mg-drawer-cell-headline is-diff">GENRES DISTINCT</span>
+                                              <span className="mg-drawer-cell-desc">Different genre classification than target film.</span>
+                                            </>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="mg-guess-drawer-footer">
+                                      <span className="mg-drawer-advice-label">DETECTIVE BRIEFING:</span>
+                                      <span className="mg-drawer-advice-text">{warmth.guidance}</span>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             );
                           })}

@@ -105,6 +105,44 @@ async function getSafePosterImage(url?: string): Promise<CanvasImageSource | nul
   });
 }
 
+// Safely loads the local Action Cat PFP image
+async function getCatAvatarImage(): Promise<CanvasImageSource | null> {
+  if (typeof window === "undefined") return null;
+
+  if (typeof document !== "undefined") {
+    const domImg = document.querySelector(".mg-sc-cat-avatar") as HTMLImageElement | null;
+    if (domImg && domImg.complete && domImg.naturalWidth > 0) {
+      try {
+        const testCanvas = document.createElement("canvas");
+        testCanvas.width = 1;
+        testCanvas.height = 1;
+        const testCtx = testCanvas.getContext("2d");
+        if (testCtx) {
+          testCtx.drawImage(domImg, 0, 0, 1, 1);
+          testCanvas.toDataURL();
+          return domImg;
+        }
+      } catch {
+        // tainted fallback
+      }
+    }
+  }
+
+  return await new Promise<HTMLImageElement | null>((resolve) => {
+    const img = new Image();
+    const timer = setTimeout(() => resolve(null), 2500);
+    img.onload = () => {
+      clearTimeout(timer);
+      resolve(img);
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      resolve(null);
+    };
+    img.src = "/cat-action.png";
+  });
+}
+
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -176,7 +214,10 @@ export async function generateCollectorShowcaseBlob(opts: CardImageOptions): Pro
   const posterUrl =
     opts.answer?.poster_url ||
     (opts.answer ? findLocalPoster(opts.answer.title, opts.answer.year) : undefined);
-  const posterImg = await getSafePosterImage(posterUrl);
+  const [posterImg, catAvatarImg] = await Promise.all([
+    getSafePosterImage(posterUrl),
+    getCatAvatarImage(),
+  ]);
 
   const canvas = document.createElement("canvas");
   const W = 1080;
@@ -345,11 +386,29 @@ export async function generateCollectorShowcaseBlob(opts: CardImageOptions): Pro
   const portraitW = 290;
   const ledgerW = frameW - portraitW;
 
-  // Left Portrait Box
+  // Left Portrait Box: Legendary Action Cat PFP
   ctx.fillStyle = "#0B0B0B";
   ctx.fillRect(frameX, frameY, portraitW, topH);
 
-  if (posterImg && opts.spoilerFree === false) {
+  if (catAvatarImg) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(catAvatarImg, frameX, frameY, portraitW, topH);
+
+    // CRT Scanlines overlay
+    ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+    for (let sy = frameY; sy < frameY + topH; sy += 4) {
+      ctx.fillRect(frameX, sy, portraitW, 2);
+    }
+
+    // Top-left AGENT ID badge
+    ctx.fillStyle = "#FF5500";
+    drawRoundedRect(ctx, frameX + 10, frameY + 10, 94, 20, 4);
+    ctx.fill();
+    ctx.fillStyle = "#FFFFFF";
+    ctx.font = `bold 8px ${PIXEL_FONT}`;
+    ctx.textAlign = "center";
+    ctx.fillText("★ AGENT CAT", frameX + 10 + 47, frameY + 10 + 14);
+  } else if (posterImg && opts.spoilerFree === false) {
     const pW = (posterImg as HTMLImageElement).naturalWidth || (posterImg as HTMLCanvasElement).width || 300;
     const pH = (posterImg as HTMLImageElement).naturalHeight || (posterImg as HTMLCanvasElement).height || 450;
     const imgAspect = pW / pH;
