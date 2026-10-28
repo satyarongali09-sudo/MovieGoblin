@@ -788,7 +788,10 @@ export async function generateStickerDeckBlob(opts: CardImageOptions): Promise<B
   const posterUrl =
     opts.answer?.poster_url ||
     (opts.answer ? findLocalPoster(opts.answer.title, opts.answer.year) : undefined);
-  const posterImg = await getSafePosterImage(posterUrl);
+  const [posterImg, catAvatarImg] = await Promise.all([
+    getSafePosterImage(posterUrl),
+    getCatAvatarImage(),
+  ]);
 
   const canvas = document.createElement("canvas");
   const W = 1080;
@@ -1183,14 +1186,36 @@ export async function generateStickerDeckBlob(opts: CardImageOptions): Promise<B
   ctx.fillStyle = "#FFB800";
   ctx.fillText("AURA", col2X + stkW / 2, row1Y + 112);
 
-  // ── Sticker 3 (Bottom Left): 8-Bit Blocky TNT Block Die-Cut Sticker ──
-  drawDieCutStickerBase(ctx, col1X, row2Y, stkW, stkH, 16, "#1A1513");
-  drawCanvasPixelTnt(ctx, col1X + stkW / 2, row2Y + 54, 4.2);
+  // ── Sticker 3 (Bottom Left): Die-Cut Action Cat Martial Arts Sticker ──
+  drawDieCutStickerBase(ctx, col1X, row2Y, stkW, stkH, 16, "#120E0C");
+  if (catAvatarImg) {
+    const catSize = 82;
+    const catX = col1X + stkW / 2 - catSize / 2;
+    const catY = row2Y + 12;
 
-  ctx.textAlign = "center";
-  ctx.font = `bold 13px ${PIXEL_FONT}`;
-  ctx.fillStyle = "#FFFFFF";
-  ctx.fillText(solved ? "MIND BLOWN" : "DETONATED", col1X + stkW / 2, row2Y + 124);
+    // White vinyl die-cut border
+    ctx.fillStyle = "#FFFFFF";
+    drawRoundedRect(ctx, catX - 3, catY - 3, catSize + 6, catSize + 6, 8);
+    ctx.fill();
+
+    ctx.save();
+    drawRoundedRect(ctx, catX, catY, catSize, catSize, 6);
+    ctx.clip();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(catAvatarImg, catX, catY, catSize, catSize);
+    ctx.restore();
+
+    ctx.textAlign = "center";
+    ctx.font = `bold 12px ${PIXEL_FONT}`;
+    ctx.fillStyle = "#FF9D00";
+    ctx.fillText(solved ? "CLUTCH CAT" : "FELINE FURY", col1X + stkW / 2, row2Y + 124);
+  } else {
+    drawCanvasPixelTnt(ctx, col1X + stkW / 2, row2Y + 54, 4.2);
+    ctx.textAlign = "center";
+    ctx.font = `bold 13px ${PIXEL_FONT}`;
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillText(solved ? "MIND BLOWN" : "DETONATED", col1X + stkW / 2, row2Y + 124);
+  }
 
   // ── Sticker 4 (Bottom Right): 8-Bit Blocky Diamond Sword Die-Cut Sticker ──
   drawDieCutStickerBase(ctx, col2X, row2Y, stkW, stkH, 16, "#1A1513");

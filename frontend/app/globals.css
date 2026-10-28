@@ -1535,11 +1535,6 @@ p {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-  font-family: var(--mg-pixel);
-  font-size: 7.5px;
-  text-align: center;
-  letter-spacing: 0.04em;
-}
 
 .mg-sc-ledger {
   display: flex;
@@ -3634,6 +3629,64 @@ p {
   background: linear-gradient(180deg, #231E1B 0%, #14110F 100%);
   padding: 5px 6px;
   gap: 3px;
+}
+
+/* Sticker 3: Die-Cut Action Cat Arcade Sticker */
+.mg-sticker-cat-diecut {
+  background: linear-gradient(180deg, #1c1512 0%, #0d0a08 100%);
+  padding: 4px 6px;
+  gap: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mg-sticker-cat-diecut-inner {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  border: 1.5px solid #FFFFFF;
+  background: #000000;
+  box-shadow: 1.5px 1.5px 0 #000000;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mg-sticker-cat-diecut-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  image-rendering: pixelated;
+  filter: contrast(1.15) brightness(1.05);
+}
+
+.mg-sticker-cat-diecut-badge {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.88);
+  color: #FF9D00;
+  font-family: var(--mg-pixel);
+  font-size: 5px;
+  text-align: center;
+  letter-spacing: 0.04em;
+  padding: 1px 0;
+}
+
+.mg-sticker-cat-diecut-label {
+  font-family: var(--mg-pixel);
+  font-size: 6.5px;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  color: #FF9D00;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .mg-pixel-sticker-svg {

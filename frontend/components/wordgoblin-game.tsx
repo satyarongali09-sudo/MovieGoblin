@@ -374,45 +374,23 @@ function VictoryStickerDeck({
           <span className="mg-aura-word">AURA</span>
         </div>
 
-        {/* Sticker 3: 8-Bit Blocky TNT Die-Cut Sticker */}
+        {/* Sticker 3: Die-Cut Action Cat Martial Arts Arcade Sticker */}
         <div
-          className="mg-diecut-sticker mg-sticker-pixel"
-          title="Blocky TNT Explosive Sticker (Tap to copy)"
+          className="mg-diecut-sticker mg-sticker-cat-diecut"
+          title="Action Cat // Clutch Strike (Tap to copy)"
           onClick={() => void handleCopyDeckSticker()}
           role="button"
           tabIndex={0}
         >
-          <svg
-            className="mg-pixel-sticker-svg"
-            viewBox="0 0 16 16"
-            shapeRendering="crispEdges"
-            aria-hidden="true"
-          >
-            {/* White Die-Cut Sticker Contour */}
-            <rect x="2" y="2" width="12" height="13" fill="#FFFFFF" />
-            <rect x="6" y="0" width="5" height="3" fill="#FFFFFF" />
-            {/* Black Pixel Outline */}
-            <rect x="3" y="3" width="10" height="11" fill="#111111" />
-            {/* Fuse & Spark */}
-            <rect x="7" y="1" width="2" height="2" fill="#4A3B32" />
-            <rect x="9" y="0" width="2" height="2" fill="#FFD600" />
-            <rect x="10" y="1" width="1" height="1" fill="#FF5500" />
-            {/* Top Red Dynamite Bars */}
-            <rect x="4" y="4" width="8" height="3" fill="#E52521" />
-            <rect x="5" y="4" width="1" height="3" fill="#FF6B6B" />
-            <rect x="8" y="4" width="1" height="3" fill="#B71C1C" />
-            {/* White TNT Center Band */}
-            <rect x="4" y="7" width="8" height="3" fill="#F8F8F8" />
-            {/* Tiny Pixel "TNT" Glyphs */}
-            <rect x="5" y="8" width="1" height="2" fill="#111111" />
-            <rect x="7" y="8" width="2" height="2" fill="#111111" />
-            <rect x="10" y="8" width="1" height="2" fill="#111111" />
-            {/* Bottom Red Dynamite Bars */}
-            <rect x="4" y="10" width="8" height="3" fill="#D32F2F" />
-            <rect x="5" y="10" width="1" height="3" fill="#FF6B6B" />
-            <rect x="8" y="10" width="1" height="3" fill="#9A0007" />
-          </svg>
-          <span className="mg-pixel-sticker-label">{solved ? "MIND BLOWN" : "DETONATED"}</span>
+          <div className="mg-sticker-cat-diecut-inner">
+            <img
+              src="/cat-action.png"
+              alt="Action Cat Die-Cut Sticker"
+              className="mg-sticker-cat-diecut-img"
+            />
+            <span className="mg-sticker-cat-diecut-badge">AGENT CAT</span>
+          </div>
+          <span className="mg-sticker-cat-diecut-label">{solved ? "CLUTCH CAT" : "FELINE FURY"}</span>
         </div>
 
         {/* Sticker 4: 8-Bit Blocky Diamond Sword Die-Cut Sticker */}
