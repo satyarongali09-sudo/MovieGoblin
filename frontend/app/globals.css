@@ -2146,14 +2146,31 @@ p {
 }
 
 /* ── Revealed answer card ──────────────────────────────────────────────── */
+.mg-win-info {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 .mg-banner-body {
   width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mg-answer {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mg-answer-layout {
   display: flex;
   gap: 16px;
   align-items: flex-start;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .mg-answer-poster-frame {
@@ -2199,6 +2216,7 @@ p {
 .mg-answer-content {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .mg-answer-title {
@@ -2207,6 +2225,8 @@ p {
   font-weight: 800;
   line-height: 1.2;
   color: var(--mg-ink);
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .mg-answer-year {
@@ -2217,8 +2237,10 @@ p {
 .mg-answer-facts {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 6px 16px;
+  width: 100%;
+  min-width: 0;
 }
 
 .mg-answer-fact {
@@ -2227,6 +2249,7 @@ p {
   gap: 6px;
   font-size: 14px;
   font-weight: 600;
+  min-width: 0;
 }
 
 .mg-answer-fact dt {
@@ -2235,10 +2258,14 @@ p {
   text-transform: uppercase;
   opacity: 0.75;
   padding-top: 3px;
+  white-space: nowrap;
 }
 
 .mg-answer-fact dd {
   margin: 0;
+  min-width: 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 /* ── Modals (Operator's Manual, Streak & Point Stats, Give Up) ─────────── */
@@ -3057,5 +3084,155 @@ p {
   .mg-legend-grid,
   .mg-stats-row {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Mobile Solved / Revealed Banner & Movie Details Card */
+  .mg-banner {
+    padding: 12px 10px;
+    gap: 10px;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+
+  .mg-banner-body {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .mg-win-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 6px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .mg-win-info {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .mg-banner-title {
+    font-size: 10px;
+    margin-bottom: 6px;
+  }
+
+  .mg-answer {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .mg-answer-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .mg-answer-poster-frame {
+    width: 74px;
+    height: 110px;
+    border-radius: 6px;
+    border-width: 2px;
+    box-shadow: 2px 2px 0 var(--mg-ink);
+    flex-shrink: 0;
+  }
+
+  .mg-answer-content {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  }
+
+  .mg-answer-title {
+    font-size: 16px;
+    line-height: 1.25;
+    margin: 0 0 6px;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .mg-answer-year {
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  .mg-answer-facts {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mg-answer-fact {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    gap: 6px;
+    font-size: 11.5px;
+    line-height: 1.35;
+    min-width: 0;
+  }
+
+  .mg-answer-fact dt {
+    font-size: 7px;
+    padding-top: 2px;
+    white-space: nowrap;
+    opacity: 0.8;
+  }
+
+  .mg-answer-fact dd {
+    font-size: 11.5px;
+    line-height: 1.35;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    min-width: 0;
+  }
+
+  .mg-score-card {
+    margin-top: 4px;
+    padding: 10px 12px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mg-score-card-top {
+    padding-bottom: 6px;
+    gap: 8px;
+  }
+
+  .mg-rank-badge {
+    padding: 4px 8px;
+    font-size: 8px;
+  }
+
+  .mg-rank-title {
+    font-size: 10px;
+  }
+
+  .mg-score-total {
+    font-size: 20px;
+  }
+
+  .mg-score-breakdown {
+    gap: 4px;
+  }
+
+  .mg-score-line {
+    font-size: 11.5px;
+  }
+
+  .mg-btn-share {
+    height: 38px;
+    font-size: 9px;
   }
 }

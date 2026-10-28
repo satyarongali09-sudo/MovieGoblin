@@ -686,7 +686,7 @@ export function WordGoblinGame() {
                     <div className="mg-banner mg-banner-win" role="status">
                       <div className="mg-banner-body">
                         <div className="mg-win-header">
-                          <div>
+                          <div className="mg-win-info">
                             <p className="mg-banner-title">
                               Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
                             </p>
@@ -761,7 +761,7 @@ export function WordGoblinGame() {
                     <div className="mg-banner mg-banner-neutral" role="status">
                       <div className="mg-banner-body">
                         <div className="mg-win-header">
-                          <div>
+                          <div className="mg-win-info">
                             <p className="mg-banner-title">The answer was</p>
                             {dayState.revealedAnswer ? (
                               <AnswerCard answer={dayState.revealedAnswer} />
