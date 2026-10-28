@@ -28,11 +28,10 @@ import {
 import { searchLocalCatalog, findLocalPoster } from "@/lib/game/local-search";
 import { deriveCaseFile, describeYearWindow } from "@/lib/game/casefile";
 import {
-  type CardShareFormat,
   shareCardImage,
   copyCardImageToClipboard,
   downloadCardImage,
-  generateCardImageBlob,
+  captureCardImage,
 } from "@/lib/game/card-image";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,6 +104,7 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
               src={posterUrl}
               alt={answer.title}
               className="mg-answer-poster"
+              crossOrigin="anonymous"
               referrerPolicy="no-referrer"
               onError={() => setImgFailed(true)}
             />
@@ -145,9 +145,12 @@ type ScoreCardProps = {
 function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onReset }: ScoreCardProps) {
   const [flipped, setFlipped] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
-  const [shareFormat, setShareFormat] = useState<CardShareFormat>("current");
   const [isGenerating, setIsGenerating] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+
+  const frontCardRef = useRef<HTMLDivElement>(null);
+  const backCardRef = useRef<HTMLDivElement>(null);
+
   const posterUrl = answer ? answer.poster_url || findLocalPoster(answer.title, answer.year) : undefined;
   const guessNo = String(breakdown.guessCount).padStart(2, "0");
   const toggle = () => setFlipped((f) => !f);
@@ -159,47 +162,49 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
     }, 4500);
   };
 
-  const handleShareCardImage = async (format: CardShareFormat = shareFormat) => {
+  const getActiveCardEl = () => (flipped ? backCardRef.current : frontCardRef.current);
+
+  const handleShareCardImage = async () => {
     setIsGenerating(true);
     try {
-      const res = await shareCardImage({
+      const cardEl = getActiveCardEl();
+      const res = await shareCardImage(cardEl, {
         breakdown,
         answer,
         dateLabel,
         flipped,
         solved,
-        format,
       });
       if (res === "copied") {
-        showToast("✓ Card image copied to clipboard! Paste directly into Stories or chats.");
+        showToast("✓ Card image copied to clipboard! Paste into Stories or chat.");
       } else if (res === "downloaded") {
-        showToast("✓ Card image downloaded as PNG!");
+        showToast("✓ Card image saved as PNG!");
       } else {
         showToast("✓ Card shared!");
       }
     } catch (e) {
       console.warn("Share image failed:", e);
-      showToast("Could not open share drawer. Try 'Copy Card Image' instead.");
+      showToast("Could not open share drawer. Try 'Copy Image' instead.");
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleCopyCardImage = async (format: CardShareFormat = shareFormat) => {
+  const handleCopyCardImage = async () => {
     setIsGenerating(true);
     try {
-      const success = await copyCardImageToClipboard({
+      const cardEl = getActiveCardEl();
+      const success = await copyCardImageToClipboard(cardEl, {
         breakdown,
         answer,
         dateLabel,
         flipped,
         solved,
-        format,
       });
       if (success) {
-        showToast("✓ Card image copied! Paste as sticker into Instagram Stories or chat.");
+        showToast("✓ Card image copied! Paste as sticker in Instagram Stories or chat.");
       } else {
-        showToast("✓ Card image downloaded as PNG (clipboard image not supported on this browser).");
+        showToast("✓ Card image downloaded as PNG!");
       }
     } catch (e) {
       console.warn("Copy image failed:", e);
@@ -209,19 +214,19 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
     }
   };
 
-  const handleDownloadCard = async (format: CardShareFormat = shareFormat) => {
+  const handleDownloadCard = async () => {
     setIsGenerating(true);
     try {
-      const blob = await generateCardImageBlob({
+      const cardEl = getActiveCardEl();
+      const blob = await captureCardImage(cardEl, {
         breakdown,
         answer,
         dateLabel,
         flipped,
         solved,
-        format,
       });
-      downloadCardImage(blob, `MovieGoblin-${dateLabel}-${format}.png`);
-      showToast("✓ Card image downloaded as PNG!");
+      downloadCardImage(blob, `MovieGoblin-${dateLabel}-${flipped ? "spec" : "badge"}.png`);
+      showToast("✓ Card image saved as PNG!");
     } catch (e) {
       console.warn("Download card failed:", e);
       showToast("Could not download card.");
@@ -258,7 +263,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
           }}
         >
           {/* ── SIDE A (FRONT): Bold Pixel Collector Wordmark (Zesty Saloon Top Card Style) ── */}
-          <div className="mg-sc-face mg-sc-front" aria-hidden={flipped}>
+          <div ref={frontCardRef} className="mg-sc-face mg-sc-front" aria-hidden={flipped}>
             <div className="mg-sc-front-meta">
               <span>MOVIEGOBLIN · ID</span>
               <span>{dateLabel}</span>
@@ -281,7 +286,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
           </div>
 
           {/* ── SIDE B (BACK): Framed Art + Ruled Ledger + Circle Stamp + Tagline (Zesty Saloon Bottom Card Style) ── */}
-          <div className="mg-sc-face mg-sc-back" aria-hidden={!flipped}>
+          <div ref={backCardRef} className="mg-sc-face mg-sc-back" aria-hidden={!flipped}>
             <div className="mg-sc-back-frame">
               <div className="mg-sc-back-top">
                 {/* Left Portrait / Pixel Mascot Well */}
@@ -291,6 +296,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
                       src={posterUrl}
                       alt={answer?.title ?? "Movie poster"}
                       className="mg-sc-portrait-img"
+                      crossOrigin="anonymous"
                       referrerPolicy="no-referrer"
                       onError={() => setImgFailed(true)}
                     />
@@ -385,27 +391,6 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
         </div>
       )}
 
-      {/* Format Selector: [Current Card Face] vs [Instagram Story (9:16)] */}
-      {solved && (
-        <div className="mg-sc-format-bar">
-          <span className="mg-sc-format-label">FORMAT:</span>
-          <button
-            type="button"
-            className={shareFormat === "current" ? "mg-sc-fmt-btn is-active" : "mg-sc-fmt-btn"}
-            onClick={() => setShareFormat("current")}
-          >
-            {flipped ? "CARD BACK (SPEC)" : "CARD FRONT (RANK)"}
-          </button>
-          <button
-            type="button"
-            className={shareFormat === "story" ? "mg-sc-fmt-btn is-active" : "mg-sc-fmt-btn"}
-            onClick={() => setShareFormat("story")}
-          >
-            📱 INSTAGRAM STORY (9:16)
-          </button>
-        </div>
-      )}
-
       {/* Action Buttons: Image Share, Image Copy, Save PNG, Copy Text, Play New */}
       <div className="mg-sc-actions">
         {solved && (
@@ -417,13 +402,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
               onClick={() => void handleShareCardImage()}
             >
               <span className="mg-sc-action-icon">{isGenerating ? "⏳" : "📸"}</span>
-              <span>
-                {isGenerating
-                  ? "GENERATING CARD IMAGE..."
-                  : shareFormat === "story"
-                    ? "SHARE INSTAGRAM STORY"
-                    : "SHARE CARD IMAGE"}
-              </span>
+              <span>{isGenerating ? "CAPTURING CARD..." : "SHARE CARD IMAGE"}</span>
             </button>
 
             <div className="mg-sc-actions-row">
