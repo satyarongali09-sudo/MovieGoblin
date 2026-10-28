@@ -31,7 +31,7 @@ import {
   shareCardImage,
   copyCardImageToClipboard,
   downloadCardImage,
-  captureCardImage,
+  generateCollectorShowcaseBlob,
 } from "@/lib/game/card-image";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -162,23 +162,19 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
     }, 4500);
   };
 
-  const getActiveCardEl = () => (flipped ? backCardRef.current : frontCardRef.current);
-
   const handleShareCardImage = async () => {
     setIsGenerating(true);
     try {
-      const cardEl = getActiveCardEl();
-      const res = await shareCardImage(cardEl, {
+      const res = await shareCardImage({
         breakdown,
         answer,
         dateLabel,
-        flipped,
         solved,
       });
       if (res === "copied") {
-        showToast("✓ Card image copied to clipboard! Paste into Stories or chat.");
+        showToast("✓ Collector showcase image copied to clipboard! Paste into Stories or chat.");
       } else if (res === "downloaded") {
-        showToast("✓ Card image saved as PNG!");
+        showToast("✓ Collector showcase image saved as PNG!");
       } else {
         showToast("✓ Card shared!");
       }
@@ -193,18 +189,16 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
   const handleCopyCardImage = async () => {
     setIsGenerating(true);
     try {
-      const cardEl = getActiveCardEl();
-      const success = await copyCardImageToClipboard(cardEl, {
+      const success = await copyCardImageToClipboard({
         breakdown,
         answer,
         dateLabel,
-        flipped,
         solved,
       });
       if (success) {
-        showToast("✓ Card image copied! Paste as sticker in Instagram Stories or chat.");
+        showToast("✓ Collector showcase image copied! Paste as sticker in Instagram Stories or chat.");
       } else {
-        showToast("✓ Card image downloaded as PNG!");
+        showToast("✓ Collector showcase image downloaded as PNG!");
       }
     } catch (e) {
       console.warn("Copy image failed:", e);
@@ -217,19 +211,17 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
   const handleDownloadCard = async () => {
     setIsGenerating(true);
     try {
-      const cardEl = getActiveCardEl();
-      const blob = await captureCardImage(cardEl, {
+      const blob = await generateCollectorShowcaseBlob({
         breakdown,
         answer,
         dateLabel,
-        flipped,
         solved,
       });
-      downloadCardImage(blob, `MovieGoblin-${dateLabel}-${flipped ? "spec" : "badge"}.png`);
-      showToast("✓ Card image saved as PNG!");
+      downloadCardImage(blob, `MovieGoblin-${dateLabel}-Showcase.png`);
+      showToast("✓ Collector showcase image saved as PNG!");
     } catch (e) {
       console.warn("Download card failed:", e);
-      showToast("Could not download card.");
+      showToast("Could not download image.");
     } finally {
       setIsGenerating(false);
     }
