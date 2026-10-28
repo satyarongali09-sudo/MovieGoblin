@@ -791,6 +791,19 @@ export function WordGoblinGame() {
                             aria-autocomplete="list"
                             aria-activedescendant={activeIdx >= 0 ? `${listboxId}-${activeIdx}` : undefined}
                           />
+                          {query.length > 0 && (
+                            <button
+                              type="button"
+                              className="mg-input-clear"
+                              onClick={() => {
+                                handleInputChange("");
+                                inputRef.current?.focus();
+                              }}
+                              aria-label="Clear input"
+                            >
+                              ✕
+                            </button>
+                          )}
                           {listOpen && query.trim().length >= 1 && (
                             <ul className="mg-suggestions" id={listboxId} role="listbox">
                               {combinedOptions.length === 0 ? (
@@ -891,55 +904,57 @@ export function WordGoblinGame() {
                           )}
                         </div>
 
-                        <button
-                          className="mg-btn-guess"
-                          disabled={!canGuess || (!selected && combinedOptions.length === 0)}
-                          type="submit"
-                        >
-                          {submitting ? "..." : "Guess"}
-                        </button>
-
-                        {/* Three-dot options menu: Case File, Clue, and Give Up */}
-                        <div className="mg-menu-anchor" ref={menuRef}>
+                        <div className="mg-search-actions">
                           <button
-                            className="mg-btn-dots"
-                            onClick={() => setMenuOpen((o) => !o)}
-                            type="button"
-                            aria-label="Options"
-                            aria-expanded={menuOpen}
-                            aria-haspopup="menu"
+                            className="mg-btn-guess"
+                            disabled={!canGuess || (!selected && combinedOptions.length === 0)}
+                            type="submit"
                           >
-                            •••
+                            {submitting ? "..." : "Guess"}
                           </button>
-                          {menuOpen && (
-                            <div className="mg-dropdown-menu" role="menu">
-                              <button
-                                className="mg-dropdown-item"
-                                onClick={caseFileVisible ? handleHideCaseFileOption : handleToggleCaseFile}
-                                type="button"
-                                role="menuitem"
-                              >
-                                {caseFileVisible ? "🔒 Hide Case File (+300 PTS)" : "📂 Open Case File"}
-                              </button>
-                              <button
-                                className="mg-dropdown-item"
-                                onClick={() => void handleClue()}
-                                type="button"
-                                role="menuitem"
-                                disabled={clueLoading}
-                              >
-                                Clue{clues.length > 0 ? ` (${clues.length} used)` : ""}
-                              </button>
-                              <button
-                                className="mg-dropdown-item mg-dropdown-danger"
-                                onClick={handleGiveUpClick}
-                                type="button"
-                                role="menuitem"
-                              >
-                                Give Up
-                              </button>
-                            </div>
-                          )}
+
+                          {/* Three-dot options menu: Case File, Clue, and Give Up */}
+                          <div className="mg-menu-anchor" ref={menuRef}>
+                            <button
+                              className="mg-btn-dots"
+                              onClick={() => setMenuOpen((o) => !o)}
+                              type="button"
+                              aria-label="Options"
+                              aria-expanded={menuOpen}
+                              aria-haspopup="menu"
+                            >
+                              •••
+                            </button>
+                            {menuOpen && (
+                              <div className="mg-dropdown-menu" role="menu">
+                                <button
+                                  className="mg-dropdown-item"
+                                  onClick={caseFileVisible ? handleHideCaseFileOption : handleToggleCaseFile}
+                                  type="button"
+                                  role="menuitem"
+                                >
+                                  {caseFileVisible ? "🔒 Hide Case File (+300 PTS)" : "📂 Open Case File"}
+                                </button>
+                                <button
+                                  className="mg-dropdown-item"
+                                  onClick={() => void handleClue()}
+                                  type="button"
+                                  role="menuitem"
+                                  disabled={clueLoading}
+                                >
+                                  Clue{clues.length > 0 ? ` (${clues.length} used)` : ""}
+                                </button>
+                                <button
+                                  className="mg-dropdown-item mg-dropdown-danger"
+                                  onClick={handleGiveUpClick}
+                                  type="button"
+                                  role="menuitem"
+                                >
+                                  Give Up
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
 
