@@ -27,6 +27,13 @@ import {
 } from "@/lib/game/client";
 import { searchLocalCatalog, findLocalPoster } from "@/lib/game/local-search";
 import { deriveCaseFile, describeYearWindow } from "@/lib/game/casefile";
+import {
+  type CardShareFormat,
+  shareCardImage,
+  copyCardImageToClipboard,
+  downloadCardImage,
+  generateCardImageBlob,
+} from "@/lib/game/card-image";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -138,9 +145,90 @@ type ScoreCardProps = {
 function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onReset }: ScoreCardProps) {
   const [flipped, setFlipped] = useState(false);
   const [imgFailed, setImgFailed] = useState(false);
+  const [shareFormat, setShareFormat] = useState<CardShareFormat>("current");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
   const posterUrl = answer ? answer.poster_url || findLocalPoster(answer.title, answer.year) : undefined;
   const guessNo = String(breakdown.guessCount).padStart(2, "0");
   const toggle = () => setFlipped((f) => !f);
+
+  const showToast = (msg: string) => {
+    setToastMsg(msg);
+    setTimeout(() => {
+      setToastMsg((cur) => (cur === msg ? null : cur));
+    }, 4500);
+  };
+
+  const handleShareCardImage = async (format: CardShareFormat = shareFormat) => {
+    setIsGenerating(true);
+    try {
+      const res = await shareCardImage({
+        breakdown,
+        answer,
+        dateLabel,
+        flipped,
+        solved,
+        format,
+      });
+      if (res === "copied") {
+        showToast("✓ Card image copied to clipboard! Paste directly into Stories or chats.");
+      } else if (res === "downloaded") {
+        showToast("✓ Card image downloaded as PNG!");
+      } else {
+        showToast("✓ Card shared!");
+      }
+    } catch (e) {
+      console.warn("Share image failed:", e);
+      showToast("Could not open share drawer. Try 'Copy Card Image' instead.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleCopyCardImage = async (format: CardShareFormat = shareFormat) => {
+    setIsGenerating(true);
+    try {
+      const success = await copyCardImageToClipboard({
+        breakdown,
+        answer,
+        dateLabel,
+        flipped,
+        solved,
+        format,
+      });
+      if (success) {
+        showToast("✓ Card image copied! Paste as sticker into Instagram Stories or chat.");
+      } else {
+        showToast("✓ Card image downloaded as PNG (clipboard image not supported on this browser).");
+      }
+    } catch (e) {
+      console.warn("Copy image failed:", e);
+      showToast("Copy failed. Tap 'Save PNG' to download.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadCard = async (format: CardShareFormat = shareFormat) => {
+    setIsGenerating(true);
+    try {
+      const blob = await generateCardImageBlob({
+        breakdown,
+        answer,
+        dateLabel,
+        flipped,
+        solved,
+        format,
+      });
+      downloadCardImage(blob, `MovieGoblin-${dateLabel}-${format}.png`);
+      showToast("✓ Card image downloaded as PNG!");
+    } catch (e) {
+      console.warn("Download card failed:", e);
+      showToast("Could not download card.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const caseBonusText =
     breakdown.noCaseFileBonus > 0
@@ -244,7 +332,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
                         : "mg-sc-ledger-row is-stat is-muted"
                     }
                   >
-                    <span>🔒 Case File Hidden</span>
+                    <span>🔒 Case File</span>
                     <strong>{caseBonusText}</strong>
                   </div>
 
@@ -289,13 +377,86 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
         <span>{flipped ? "FLIP TO FRONT SIDE (RANK BADGE)" : "FLIP CARD TO SEE BACK SIDE (BREAKDOWN)"}</span>
       </button>
 
-      {/* Action Buttons: Share Score Report + Play New / Reset Puzzle */}
+      {/* Feedback Toast Notification */}
+      {toastMsg && (
+        <div className="mg-sc-toast" role="status" aria-live="polite">
+          <span className="mg-sc-toast-dot">●</span>
+          <span>{toastMsg}</span>
+        </div>
+      )}
+
+      {/* Format Selector: [Current Card Face] vs [Instagram Story (9:16)] */}
+      {solved && (
+        <div className="mg-sc-format-bar">
+          <span className="mg-sc-format-label">FORMAT:</span>
+          <button
+            type="button"
+            className={shareFormat === "current" ? "mg-sc-fmt-btn is-active" : "mg-sc-fmt-btn"}
+            onClick={() => setShareFormat("current")}
+          >
+            {flipped ? "CARD BACK (SPEC)" : "CARD FRONT (RANK)"}
+          </button>
+          <button
+            type="button"
+            className={shareFormat === "story" ? "mg-sc-fmt-btn is-active" : "mg-sc-fmt-btn"}
+            onClick={() => setShareFormat("story")}
+          >
+            📱 INSTAGRAM STORY (9:16)
+          </button>
+        </div>
+      )}
+
+      {/* Action Buttons: Image Share, Image Copy, Save PNG, Copy Text, Play New */}
       <div className="mg-sc-actions">
         {solved && (
-          <button type="button" className="mg-btn-share" onClick={onShare}>
-            {copied ? "✓ COPIED SCORE" : "SHARE SCORE REPORT"}
-          </button>
+          <>
+            <button
+              type="button"
+              className="mg-sc-btn-share-img"
+              disabled={isGenerating}
+              onClick={() => void handleShareCardImage()}
+            >
+              <span className="mg-sc-action-icon">{isGenerating ? "⏳" : "📸"}</span>
+              <span>
+                {isGenerating
+                  ? "GENERATING CARD IMAGE..."
+                  : shareFormat === "story"
+                    ? "SHARE INSTAGRAM STORY"
+                    : "SHARE CARD IMAGE"}
+              </span>
+            </button>
+
+            <div className="mg-sc-actions-row">
+              <button
+                type="button"
+                className="mg-sc-btn-sub"
+                disabled={isGenerating}
+                onClick={() => void handleCopyCardImage()}
+                title="Copy card image to clipboard (paste as sticker in Instagram Stories or chat)"
+              >
+                <span>📋</span> COPY IMAGE
+              </button>
+              <button
+                type="button"
+                className="mg-sc-btn-sub"
+                disabled={isGenerating}
+                onClick={() => void handleDownloadCard()}
+                title="Save high-res PNG image"
+              >
+                <span>💾</span> SAVE PNG
+              </button>
+              <button
+                type="button"
+                className="mg-sc-btn-sub"
+                onClick={onShare}
+                title="Copy plain text score report"
+              >
+                <span>{copied ? "✓" : "📄"}</span> {copied ? "COPIED" : "TEXT"}
+              </button>
+            </div>
+          </>
         )}
+
         <button type="button" className="mg-sc-btn-reset" onClick={onReset}>
           🔄 PLAY NEW / RESET PUZZLE
         </button>
