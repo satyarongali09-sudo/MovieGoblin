@@ -91,7 +91,7 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
   return (
     <div className="mg-answer">
       <div className="mg-answer-layout">
-        {posterUrl && !imgFailed ? (
+        {posterUrl && !imgFailed && (
           <div className="mg-answer-poster-frame">
             <img
               src={posterUrl}
@@ -100,13 +100,6 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
               referrerPolicy="no-referrer"
               onError={() => setImgFailed(true)}
             />
-          </div>
-        ) : (
-          <div className="mg-answer-poster-frame mg-poster-fallback-frame" aria-hidden="true">
-            <div className="mg-poster-placeholder">
-              <span className="mg-poster-icon">🎬</span>
-              <span className="mg-poster-fallback-text">{answer.year}</span>
-            </div>
           </div>
         )}
         <div className="mg-answer-content">
@@ -649,23 +642,6 @@ export function WordGoblinGame() {
                     <span className="mg-logo-text">MovieGoblin</span>
                   </div>
 
-                  {/* Interactive Streak & Score Pill Button in Top Console Bar */}
-                  <button
-                    type="button"
-                    className="mg-streak-pill"
-                    onClick={() => setShowStats(true)}
-                    title="View Career Stats, High Score & Streak"
-                  >
-                    <span className="mg-streak-bars" aria-hidden="true">
-                      <i className={stats.currentStreak >= 1 ? "is-lit" : ""} />
-                      <i className={stats.currentStreak >= 3 ? "is-lit" : ""} />
-                      <i className={stats.currentStreak >= 7 ? "is-lit" : ""} />
-                    </span>
-                    <span className="mg-streak-text">
-                      STREAK: {stats.currentStreak}D · {stats.won} WON
-                    </span>
-                  </button>
-
                   <div className="mg-status-right">
                     <span className="mg-date-badge">
                       {dailyGame ? formatPuzzleDate(dailyGame.date) : "TODAY"}
@@ -857,37 +833,25 @@ export function WordGoblinGame() {
                                         onMouseEnter={() => setActiveIdx(i)}
                                       >
                                         <div className="mg-suggestion-left-wrap">
-                                          <div className="mg-suggestion-thumb-wrap">
-                                            {(() => {
-                                              const posterSrc = s.poster_url || findLocalPoster(s.label, s.year);
-                                              return (
-                                                <>
-                                                  {posterSrc ? (
-                                                    <img
-                                                      src={posterSrc}
-                                                      alt=""
-                                                      className="mg-suggestion-thumb"
-                                                      loading="lazy"
-                                                      referrerPolicy="no-referrer"
-                                                      onError={(e) => {
-                                                        const target = e.currentTarget as HTMLElement;
-                                                        target.style.display = "none";
-                                                        const fallback = target.nextElementSibling as HTMLElement | null;
-                                                        if (fallback) fallback.style.display = "flex";
-                                                      }}
-                                                    />
-                                                  ) : null}
-                                                  <span
-                                                    className="mg-suggestion-thumb-fallback"
-                                                    aria-hidden="true"
-                                                    style={{ display: posterSrc ? "none" : "flex" }}
-                                                  >
-                                                    🎬
-                                                  </span>
-                                                </>
-                                              );
-                                            })()}
-                                          </div>
+                                          {(() => {
+                                            const posterSrc = s.poster_url || findLocalPoster(s.label, s.year);
+                                            if (!posterSrc) return null;
+                                            return (
+                                              <div className="mg-suggestion-thumb-wrap">
+                                                <img
+                                                  src={posterSrc}
+                                                  alt=""
+                                                  className="mg-suggestion-thumb"
+                                                  loading="lazy"
+                                                  referrerPolicy="no-referrer"
+                                                  onError={(e) => {
+                                                    const wrap = (e.currentTarget as HTMLElement).closest(".mg-suggestion-thumb-wrap") as HTMLElement | null;
+                                                    if (wrap) wrap.style.display = "none";
+                                                  }}
+                                                />
+                                              </div>
+                                            );
+                                          })()}
                                           <div className="mg-suggestion-main">
                                             <span className="mg-suggestion-title">{s.title}</span>
                                             {sub && <span className="mg-suggestion-sub">{sub}</span>}
@@ -1107,41 +1071,67 @@ export function WordGoblinGame() {
                                 <div className="mg-guess-main">
                                   <div className="mg-guess-left">
                                     <span className="mg-guess-index">{String(originalIndex).padStart(2, "0")}</span>
-                                    <div className="mg-guess-thumb-wrap">
-                                      {(() => {
-                                        const guessPoster = item.poster_url || findLocalPoster(item.matchedTitle || item.guess);
-                                        return (
-                                          <>
-                                            {guessPoster ? (
-                                              <img
-                                                src={guessPoster}
-                                                alt=""
-                                                className="mg-guess-thumb"
-                                                loading="lazy"
-                                                referrerPolicy="no-referrer"
-                                                onError={(e) => {
-                                                  const target = e.currentTarget as HTMLElement;
-                                                  target.style.display = "none";
-                                                  const fallback = target.nextElementSibling as HTMLElement | null;
-                                                  if (fallback) fallback.style.display = "flex";
-                                                }}
-                                              />
-                                            ) : null}
-                                            <div
-                                              className="mg-guess-thumb-fallback"
-                                              aria-hidden="true"
-                                              style={{ display: guessPoster ? "none" : "flex" }}
-                                            >
-                                              🎬
-                                            </div>
-                                          </>
-                                        );
-                                      })()}
-                                    </div>
+                                    {(() => {
+                                      const guessPoster = item.poster_url || findLocalPoster(item.matchedTitle || item.guess);
+                                      if (!guessPoster) return null;
+                                      return (
+                                        <div className="mg-guess-thumb-wrap">
+                                          <img
+                                            src={guessPoster}
+                                            alt=""
+                                            className="mg-guess-thumb"
+                                            loading="lazy"
+                                            referrerPolicy="no-referrer"
+                                            onError={(e) => {
+                                              const wrap = (e.currentTarget as HTMLElement).closest(".mg-guess-thumb-wrap") as HTMLElement | null;
+                                              if (wrap) wrap.style.display = "none";
+                                            }}
+                                          />
+                                        </div>
+                                      );
+                                    })()}
                                     <span className="mg-guess-title" title={item.matchedTitle || item.guess}>
                                       {item.matchedTitle || item.guess}
                                     </span>
                                     {isBest && <span className="mg-best-tag">Best</span>}
+                                    {/* Show attribute hint badges inline next to movie name to save vertical space */}
+                                    {h && (caseFileVisible || isGameOver) && (
+                                      <div className="mg-hints">
+                                        {h.director && (
+                                          <span className="mg-badge mg-badge-d is-found" title={`Same director: ${h.director}`}>
+                                            D
+                                          </span>
+                                        )}
+                                        {h.cast.length > 0 && (
+                                          <span
+                                            className="mg-badge mg-badge-star is-found"
+                                            title={`Shared actors: ${h.cast.join(", ")}`}
+                                          >
+                                            ★{h.cast.length > 1 ? h.cast.length : ""}
+                                          </span>
+                                        )}
+                                        {h.language && (
+                                          <span className="mg-badge is-found" title={`Same language: ${h.language}`}>
+                                            {h.language.slice(0, 3).toUpperCase()}
+                                          </span>
+                                        )}
+                                        {(() => {
+                                          const y = yearBadge(h.year.relation, h.year.value);
+                                          return (
+                                            <span
+                                              className={
+                                                h.year.relation === "same" || h.year.within5
+                                                  ? "mg-badge mg-badge-year is-found"
+                                                  : "mg-badge mg-badge-year"
+                                              }
+                                              title={y.title}
+                                            >
+                                              {y.symbol} {h.year.value}
+                                            </span>
+                                          );
+                                        })()}
+                                      </div>
+                                    )}
                                   </div>
                                   <div className="mg-guess-right">
                                     <div className="mg-proximity-bar" aria-hidden="true">
@@ -1155,44 +1145,6 @@ export function WordGoblinGame() {
                                     <span className="mg-guess-score">{item.similarity}%</span>
                                   </div>
                                 </div>
-                                {/* Show attribute hint badges under guess only when Case File is open or game is over */}
-                                {h && (caseFileVisible || isGameOver) && (
-                                  <div className="mg-hints">
-                                    {h.director && (
-                                      <span className="mg-badge mg-badge-d is-found" title={`Same director: ${h.director}`}>
-                                        D
-                                      </span>
-                                    )}
-                                    {h.cast.length > 0 && (
-                                      <span
-                                        className="mg-badge mg-badge-star is-found"
-                                        title={`Shared actors: ${h.cast.join(", ")}`}
-                                      >
-                                        ★{h.cast.length > 1 ? h.cast.length : ""}
-                                      </span>
-                                    )}
-                                    {h.language && (
-                                      <span className="mg-badge is-found" title={`Same language: ${h.language}`}>
-                                        {h.language.slice(0, 3).toUpperCase()}
-                                      </span>
-                                    )}
-                                    {(() => {
-                                      const y = yearBadge(h.year.relation, h.year.value);
-                                      return (
-                                        <span
-                                          className={
-                                            h.year.relation === "same" || h.year.within5
-                                              ? "mg-badge mg-badge-year is-found"
-                                              : "mg-badge mg-badge-year"
-                                          }
-                                          title={y.title}
-                                        >
-                                          {y.symbol} {h.year.value}
-                                        </span>
-                                      );
-                                    })()}
-                                  </div>
-                                )}
                               </div>
                             );
                           })}
@@ -1214,8 +1166,20 @@ export function WordGoblinGame() {
                   <button className="mg-softkey-btn" onClick={() => setShowHowToPlay(true)} type="button">
                     How to Play
                   </button>
-                  <button className="mg-softkey-center" onClick={() => setShowStats(true)} type="button">
-                    Stats &amp; Streaks
+                  <button
+                    type="button"
+                    className="mg-softkey-streak"
+                    onClick={() => setShowStats(true)}
+                    title="View Career Stats, High Score & Streak"
+                  >
+                    <span className="mg-streak-bars" aria-hidden="true">
+                      <i className={stats.currentStreak >= 1 ? "is-lit" : ""} />
+                      <i className={stats.currentStreak >= 3 ? "is-lit" : ""} />
+                      <i className={stats.currentStreak >= 7 ? "is-lit" : ""} />
+                    </span>
+                    <span className="mg-softkey-streak-text">
+                      🔥 STREAK: {stats.currentStreak}D · {stats.won} SOLVED
+                    </span>
                   </button>
                   <button
                     className="mg-softkey-btn"

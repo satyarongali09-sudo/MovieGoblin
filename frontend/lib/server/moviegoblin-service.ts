@@ -45,29 +45,25 @@ export type {
  * Creates a server-side Supabase client using privileged secret keys.
  * SECURITY: Never uses NEXT_PUBLIC_* as a secret key.
  */
-export function getSupabaseAdmin(): SupabaseClient {
+export function getSupabaseAdmin(): SupabaseClient | null {
   const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const secretKey =
     process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!url) {
-    throw new CatalogUnavailableError(
-      "Supabase URL is not configured. SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL is required."
-    );
+  if (!url || !secretKey) {
+    return null;
   }
 
-  if (!secretKey) {
-    throw new CatalogUnavailableError(
-      "Server database secret is not configured. Set SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY in server environment variables."
-    );
+  try {
+    return createClient(url, secretKey, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+      },
+    });
+  } catch {
+    return null;
   }
-
-  return createClient(url, secretKey, {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  });
 }
 
 type CompactMovie = {
@@ -160,6 +156,7 @@ export interface IMovieGoblinRepository {
 export class NextSupabaseMovieGoblinRepository implements IMovieGoblinRepository {
   private cachedMovies: CatalogMovie[] | null = null;
   private cacheExpiresAt = 0;
+  private assignments = new Map<string, string>();
 
   async getAllActiveMovies(): Promise<CatalogMovie[]> {
     const now = Date.now();
@@ -169,85 +166,122 @@ export class NextSupabaseMovieGoblinRepository implements IMovieGoblinRepository
 
     const bundled = loadBundledCatalogMovies();
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("moviegoblin_movies")
-      .select("id, title, normalized_title, aliases, year, genres, plot, embedding, is_active")
-      .eq("is_active", true);
 
-    if (error) {
-      throw new CatalogUnavailableError(`Database error fetching movies: ${error.message}`);
+    // If Supabase is not configured (e.g. serverless without secret key) or unavailable,
+    // seamlessly serve the complete bundled 6,154-movie catalog!
+    if (!supabase) {
+      this.cachedMovies = bundled;
+      this.cacheExpiresAt = now + 10 * 60 * 1000;
+      return this.cachedMovies;
     }
 
-    if (!data || data.length === 0) {
-      throw new CatalogUnavailableError("No active movies found in database.");
+    try {
+      // Race Supabase against a 3-second timeout so slow/paused DB never blocks serverless requests
+      const fetchPromise = supabase
+        .from("moviegoblin_movies")
+        .select("id, title, normalized_title, aliases, year, genres, plot, embedding, is_active")
+        .eq("is_active", true);
+
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: "Supabase connection timed out (3s)" } }), 3000)
+      );
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+
+      if (error || !data || data.length === 0) {
+        this.cachedMovies = bundled;
+        this.cacheExpiresAt = now + 10 * 60 * 1000;
+        return this.cachedMovies;
+      }
+
+      const bundledMap = new Map<string, CatalogMovie>();
+      for (const bm of bundled) {
+        bundledMap.set(`${normalizeTitle(bm.title)}::${bm.year}`, bm);
+      }
+
+      const seenKey = new Set<string>();
+      const merged: CatalogMovie[] = [];
+
+      for (const m of data as CatalogMovie[]) {
+        const key = `${normalizeTitle(m.title)}::${m.year}`;
+        seenKey.add(key);
+        const bundledMatch = bundledMap.get(key);
+        merged.push({
+          ...m,
+          poster_url: m.poster_url || bundledMatch?.poster_url,
+        });
+      }
+
+      for (const bm of bundled) {
+        const key = `${normalizeTitle(bm.title)}::${bm.year}`;
+        if (seenKey.has(key)) continue;
+        seenKey.add(key);
+        merged.push(bm);
+      }
+
+      this.cachedMovies = merged;
+      this.cacheExpiresAt = now + 10 * 60 * 1000;
+      return this.cachedMovies;
+    } catch {
+      this.cachedMovies = bundled;
+      this.cacheExpiresAt = now + 10 * 60 * 1000;
+      return this.cachedMovies;
     }
-
-    const bundledMap = new Map<string, CatalogMovie>();
-    for (const bm of bundled) {
-      bundledMap.set(`${normalizeTitle(bm.title)}::${bm.year}`, bm);
-    }
-
-    const seenKey = new Set<string>();
-    const merged: CatalogMovie[] = [];
-
-    for (const m of data as CatalogMovie[]) {
-      const key = `${normalizeTitle(m.title)}::${m.year}`;
-      seenKey.add(key);
-      const bundledMatch = bundledMap.get(key);
-      merged.push({
-        ...m,
-        poster_url: m.poster_url || bundledMatch?.poster_url,
-      });
-    }
-
-    for (const bm of bundled) {
-      const key = `${normalizeTitle(bm.title)}::${bm.year}`;
-      if (seenKey.has(key)) continue;
-      seenKey.add(key);
-      merged.push(bm);
-    }
-
-    this.cachedMovies = merged;
-    this.cacheExpiresAt = now + 10 * 60 * 1000;
-    return this.cachedMovies;
   }
 
   async getDailyAssignment(dateUTC: string): Promise<string | null> {
+    const memory = this.assignments.get(dateUTC);
+    if (memory) return memory;
+
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("moviegoblin_daily")
-      .select("movie_id")
-      .eq("puzzle_date", dateUTC)
-      .maybeSingle();
+    if (!supabase) return null;
 
-    if (error) {
-      throw new CatalogUnavailableError(`Database error fetching daily assignment: ${error.message}`);
+    try {
+      const fetchPromise = supabase
+        .from("moviegoblin_daily")
+        .select("movie_id")
+        .eq("puzzle_date", dateUTC)
+        .maybeSingle();
+
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: "Supabase daily fetch timed out (2.5s)" } }), 2500)
+      );
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
+      if (error || !data?.movie_id) return null;
+
+      this.assignments.set(dateUTC, data.movie_id);
+      return data.movie_id;
+    } catch {
+      return null;
     }
-
-    return data?.movie_id ?? null;
   }
 
   async createDailyAssignment(dateUTC: string, movieId: string): Promise<string> {
+    this.assignments.set(dateUTC, movieId);
+
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase
-      .from("moviegoblin_daily")
-      .upsert(
-        { puzzle_date: dateUTC, movie_id: movieId },
-        { onConflict: "puzzle_date", ignoreDuplicates: true }
-      )
-      .select("movie_id")
-      .maybeSingle();
+    if (!supabase) return movieId;
 
-    if (error) {
-      throw new CatalogUnavailableError(`Database error assigning daily puzzle: ${error.message}`);
+    try {
+      const upsertPromise = supabase
+        .from("moviegoblin_daily")
+        .upsert(
+          { puzzle_date: dateUTC, movie_id: movieId },
+          { onConflict: "puzzle_date", ignoreDuplicates: true }
+        )
+        .select("movie_id")
+        .maybeSingle();
+
+      const timeoutPromise = new Promise<{ data: null; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: null, error: { message: "Supabase daily upsert timed out (2.5s)" } }), 2500)
+      );
+
+      const { data } = await Promise.race([upsertPromise, timeoutPromise]);
+      return data?.movie_id ?? movieId;
+    } catch {
+      return movieId;
     }
-
-    if (!data?.movie_id) {
-      const existing = await this.getDailyAssignment(dateUTC);
-      return existing ?? movieId;
-    }
-
-    return data.movie_id;
   }
 }
 
