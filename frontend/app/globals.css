@@ -1076,11 +1076,11 @@ p {
 /* Win Banner Header & Point Score Breakdown Card */
 .mg-win-header {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 16px;
+  gap: 20px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
+  margin-bottom: 4px;
 }
 
 .mg-score-card {
@@ -2254,7 +2254,7 @@ p {
   background: rgba(11, 11, 11, 0.07);
   display: flex;
   flex-direction: column;
-  min-height: 290px;
+  min-height: auto;
   box-shadow: 4px 4px 0 rgba(11, 11, 11, 0.22);
 }
 
@@ -2414,6 +2414,7 @@ p {
   justify-content: center;
   text-align: center;
   padding: 28px 20px;
+  min-height: 210px;
   gap: 10px;
   color: var(--mg-ink);
 }
@@ -2735,11 +2736,22 @@ p {
   flex-shrink: 0;
 }
 
-/* ── Revealed answer card ──────────────────────────────────────────────── */
+/* ── Revealed answer card & Die-Cut Arcade Sticker Deck ────────────────── */
 .mg-win-info {
-  flex: 1 1 320px;
+  flex: 1 1 360px;
   min-width: 0;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.mg-win-info-top {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
 }
 
 .mg-banner-body {
@@ -2764,12 +2776,12 @@ p {
 }
 
 .mg-answer-poster-frame {
-  width: 104px;
-  height: 152px;
-  border-radius: 8px;
+  width: 108px;
+  height: 158px;
+  border-radius: 9px;
   border: 2.5px solid var(--mg-ink);
   background: var(--mg-chassis-well);
-  box-shadow: 3px 3px 0 var(--mg-ink);
+  box-shadow: 3.5px 3.5px 0 var(--mg-ink);
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -2807,13 +2819,24 @@ p {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mg-answer-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .mg-answer-title {
-  margin: 2px 0 6px;
+  margin: 0;
   font-size: 22px;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1.18;
   color: var(--mg-ink);
   word-break: break-word;
   overflow-wrap: break-word;
@@ -2824,38 +2847,304 @@ p {
   opacity: 0.72;
 }
 
+.mg-answer-pills {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.mg-answer-pill {
+  font-family: var(--mg-pixel);
+  font-size: 7px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: var(--mg-ink);
+  color: var(--mg-cream);
+  border: 1.5px solid var(--mg-ink);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
 .mg-answer-facts {
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 6px 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 10px;
   width: 100%;
   min-width: 0;
 }
 
 .mg-answer-fact {
-  display: grid;
-  grid-template-columns: 76px 1fr;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1.5px solid rgba(11, 11, 11, 0.24);
+  box-shadow: 1.5px 1.5px 0 rgba(11, 11, 11, 0.14);
+  font-size: 13px;
+  font-weight: 700;
   min-width: 0;
 }
 
 .mg-answer-fact dt {
   font-family: var(--mg-pixel);
-  font-size: 8px;
+  font-size: 7px;
   text-transform: uppercase;
-  opacity: 0.75;
-  padding-top: 3px;
+  letter-spacing: 0.05em;
+  color: var(--mg-ink);
+  opacity: 0.68;
   white-space: nowrap;
 }
 
 .mg-answer-fact dd {
   margin: 0;
   min-width: 0;
+  color: var(--mg-ink);
+  line-height: 1.3;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+/* ── Arcade Die-Cut Sticker Board & Detective Telemetry Deck ────────────── */
+.mg-sticker-board {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: 12px;
+  border: 2.5px solid var(--mg-ink);
+  background:
+    radial-gradient(rgba(253, 227, 207, 0.14) 1px, transparent 1px),
+    linear-gradient(145deg, #171311 0%, #241d19 100%);
+  background-size: 10px 10px, 100% 100%;
+  box-shadow: 4px 4px 0 var(--mg-ink);
+  padding: 10px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--mg-cream);
+}
+
+.mg-sticker-board-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 7px;
+  border-bottom: 1.5px dashed rgba(253, 227, 207, 0.25);
+  flex-wrap: wrap;
+}
+
+.mg-sticker-board-kicker {
+  font-family: var(--mg-pixel);
+  font-size: 7.5px;
+  letter-spacing: 0.06em;
+  color: var(--mg-cream);
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+
+.mg-sticker-board-status {
+  font-family: var(--mg-pixel);
+  font-size: 7.5px;
+  letter-spacing: 0.05em;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: rgba(255, 85, 0, 0.2);
+  border: 1px solid var(--mg-screen);
+  color: var(--mg-screen);
+  text-transform: uppercase;
+}
+
+.mg-sticker-row {
+  display: grid;
+  grid-template-columns: 1.35fr 1.05fr 0.9fr 0.9fr;
+  gap: 9px;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+}
+
+/* Base Die-Cut Sticker with Crisp White Contour Border & Tactile Drop Shadow */
+.mg-diecut-sticker {
+  position: relative;
+  border-radius: 10px;
+  background: #100E0D;
+  border: 3px solid #FFFFFF;
+  box-shadow:
+    0 0 0 2px #0B0B0B,
+    3px 4px 0 rgba(0, 0, 0, 0.65);
+  padding: 7px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 4px;
+  min-width: 0;
+  user-select: none;
+  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.mg-diecut-sticker:hover {
+  transform: translateY(-2px) rotate(-1deg);
+}
+
+/* Sticker 1A: GTA "MISSION PASSED! / RESPECT +" Die-Cut Sticker */
+.mg-sticker-mission {
+  background: linear-gradient(180deg, #1b1714 0%, #0d0b0a 100%);
+  transform: rotate(-1deg);
+}
+
+.mg-mission-line1 {
+  font-family: var(--mg-sans);
+  font-weight: 900;
+  font-size: 13px;
+  line-height: 1.05;
+  letter-spacing: 0.03em;
+  color: #FF9D00;
+  text-transform: uppercase;
+  text-shadow:
+    -1.5px -1.5px 0 #000,
+    1.5px -1.5px 0 #000,
+    -1.5px 1.5px 0 #000,
+    1.5px 1.5px 0 #000,
+    0 2.5px 0 #000;
+}
+
+.mg-mission-line2 {
+  font-family: var(--mg-sans);
+  font-weight: 900;
+  font-size: 13.5px;
+  line-height: 1.05;
+  letter-spacing: 0.04em;
+  color: #FFFFFF;
+  text-transform: uppercase;
+  text-shadow:
+    -1.5px -1.5px 0 #000,
+    1.5px -1.5px 0 #000,
+    -1.5px 1.5px 0 #000,
+    1.5px 1.5px 0 #000,
+    0 2.5px 0 #000;
+}
+
+/* Sticker 1B: 8-Bit Arcade "GAME OVER" Sunset Gradient Sticker */
+.mg-sticker-gameover {
+  background: linear-gradient(180deg, #171219 0%, #0c090e 100%);
+  transform: rotate(-1deg);
+  gap: 3px;
+}
+
+.mg-gameover-line {
+  font-family: var(--mg-pixel);
+  font-size: 11px;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  background: linear-gradient(180deg, #FFE600 0%, #FF7A00 52%, #FF1E27 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(2px 2px 0 #070510) drop-shadow(-1px -1px 0 #070510);
+}
+
+/* Sticker 2: "+1000 AURA" 8-Bit Pixel Die-Cut Sticker */
+.mg-sticker-aura {
+  background: #FFFFFF;
+  border-color: #FFFFFF;
+  transform: rotate(1deg);
+  gap: 4px;
+}
+
+.mg-aura-num {
+  font-family: var(--mg-pixel);
+  font-size: 11.5px;
+  line-height: 1.05;
+  color: #0B0B0B;
+  letter-spacing: 0.02em;
+  text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.18);
+}
+
+.mg-aura-word {
+  font-family: var(--mg-pixel);
+  font-size: 11px;
+  line-height: 1.05;
+  letter-spacing: 0.06em;
+  color: #FFB800;
+  text-shadow:
+    -1.5px -1.5px 0 #0B0B0B,
+    1.5px -1.5px 0 #0B0B0B,
+    -1.5px 1.5px 0 #0B0B0B,
+    1.5px 1.5px 0 #0B0B0B,
+    0 2px 0 #0B0B0B;
+}
+
+/* Stickers 3 & 4: Blocky 8-Bit Pixel Art Stickers (TNT & Diamond Sword) */
+.mg-sticker-pixel {
+  background: linear-gradient(180deg, #231E1B 0%, #14110F 100%);
+  padding: 5px 6px;
+  gap: 3px;
+}
+
+.mg-pixel-sticker-svg {
+  width: 34px;
+  height: 34px;
+  display: block;
+  flex-shrink: 0;
+  filter: drop-shadow(1.5px 2px 0 rgba(0, 0, 0, 0.75));
+}
+
+.mg-pixel-sticker-label {
+  font-family: var(--mg-pixel);
+  font-size: 6.5px;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  color: var(--mg-cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* 3-Column Detective Telemetry Strip */
+.mg-telemetry-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  width: 100%;
+  min-width: 0;
+}
+
+.mg-telemetry-cell {
+  background: rgba(253, 227, 207, 0.08);
+  border: 1.5px solid rgba(253, 227, 207, 0.22);
+  border-radius: 7px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.mg-telemetry-key {
+  font-family: var(--mg-pixel);
+  font-size: 6.5px;
+  letter-spacing: 0.05em;
+  color: rgba(253, 227, 207, 0.64);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mg-telemetry-val {
+  font-family: var(--mg-sans);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--mg-cream);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ── Modals (Operator's Manual, Streak & Point Stats, Give Up) ─────────── */
@@ -3758,7 +4047,7 @@ p {
   .mg-answer-title {
     font-size: 16px;
     line-height: 1.25;
-    margin: 0 0 6px;
+    margin: 0;
     word-break: break-word;
     overflow-wrap: break-word;
   }
@@ -3766,6 +4055,11 @@ p {
   .mg-answer-year {
     font-size: 13.5px;
     font-weight: 600;
+  }
+
+  .mg-answer-pill {
+    font-size: 6px;
+    padding: 3px 5px;
   }
 
   .mg-answer-facts {
@@ -3778,15 +4072,16 @@ p {
 
   .mg-answer-fact {
     display: grid;
-    grid-template-columns: 52px 1fr;
+    grid-template-columns: 56px 1fr;
     gap: 6px;
+    padding: 4px 7px;
     font-size: 11.5px;
     line-height: 1.35;
     min-width: 0;
   }
 
   .mg-answer-fact dt {
-    font-size: 7px;
+    font-size: 6.5px;
     padding-top: 2px;
     white-space: nowrap;
     opacity: 0.8;
@@ -3798,6 +4093,88 @@ p {
     word-break: break-word;
     overflow-wrap: break-word;
     min-width: 0;
+  }
+
+  /* Mobile Responsive Arcade Sticker Deck (.mg-sticker-board) */
+  .mg-sticker-board {
+    padding: 8px 9px 9px;
+    gap: 8px;
+    border-radius: 10px;
+    box-shadow: 2.5px 2.5px 0 var(--mg-ink);
+  }
+
+  .mg-sticker-board-bar {
+    padding-bottom: 5px;
+    gap: 4px;
+  }
+
+  .mg-sticker-board-kicker {
+    font-size: 6.5px;
+  }
+
+  .mg-sticker-board-status {
+    font-size: 6.5px;
+    padding: 2.5px 5px;
+  }
+
+  .mg-sticker-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .mg-diecut-sticker {
+    padding: 6px 6px;
+    border-width: 2.5px;
+  }
+
+  .mg-mission-line1 {
+    font-size: 11.5px;
+  }
+
+  .mg-mission-line2 {
+    font-size: 12px;
+  }
+
+  .mg-gameover-line {
+    font-size: 9.5px;
+  }
+
+  .mg-aura-num {
+    font-size: 10.5px;
+  }
+
+  .mg-aura-word {
+    font-size: 10px;
+  }
+
+  .mg-pixel-sticker-svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  .mg-pixel-sticker-label {
+    font-size: 6px;
+  }
+
+  .mg-telemetry-strip {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+
+  .mg-telemetry-cell {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 5px 8px;
+    gap: 6px;
+  }
+
+  .mg-telemetry-key {
+    font-size: 6px;
+  }
+
+  .mg-telemetry-val {
+    font-size: 10.5px;
   }
 
   /* Mobile Responsive Two-Sided Score Card (.mg-sc) */

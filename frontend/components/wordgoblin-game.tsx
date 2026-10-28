@@ -83,6 +83,13 @@ function attrBadgeCode(kind: AttributeKind): string {
 function AnswerCard({ answer }: { answer: RevealedAnswer }) {
   const [imgFailed, setImgFailed] = useState(false);
   const posterUrl = answer.poster_url || findLocalPoster(answer.title, answer.year);
+  const decadeLabel = answer.year ? `${Math.floor(answer.year / 10) * 10}s ERA` : null;
+  const metaPills = [
+    answer.language ? answer.language.toUpperCase() : null,
+    answer.runtime ? `${answer.runtime} MIN` : null,
+    decadeLabel,
+  ].filter((p): p is string => Boolean(p));
+
   const facts = [
     answer.director ? { k: "Director", v: answer.director } : null,
     answer.cast?.length ? { k: "Starring", v: answer.cast.slice(0, 4).join(", ") } : null,
@@ -111,9 +118,20 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
           </div>
         )}
         <div className="mg-answer-content">
-          <p className="mg-answer-title">
-            {answer.title} <span className="mg-answer-year">({answer.year})</span>
-          </p>
+          <div className="mg-answer-title-row">
+            <p className="mg-answer-title">
+              {answer.title} <span className="mg-answer-year">({answer.year})</span>
+            </p>
+            {metaPills.length > 0 && (
+              <div className="mg-answer-pills">
+                {metaPills.map((pill) => (
+                  <span key={pill} className="mg-answer-pill">
+                    {pill}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
           {facts.length > 0 && (
             <dl className="mg-answer-facts">
               {facts.map((f) => (
@@ -124,6 +142,160 @@ function AnswerCard({ answer }: { answer: RevealedAnswer }) {
               ))}
             </dl>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Die-Cut Arcade Sticker Deck & Case Telemetry (Fills Win Banner Space) ───
+
+type VictoryStickerDeckProps = {
+  breakdown: ScoreBreakdown;
+  solved: boolean;
+  guessCount: number;
+  cluesUsed: number;
+};
+
+function VictoryStickerDeck({ breakdown, solved, guessCount, cluesUsed }: VictoryStickerDeckProps) {
+  const auraPoints = solved ? `+${breakdown.total}` : "+000";
+  const speedBadge = !solved
+    ? "💀 SIGNAL LOST"
+    : guessCount === 1
+      ? "⚡ FIRST-TRY SNIPE"
+      : guessCount <= 3
+        ? "🔥 SHARP DETECTIVE"
+        : guessCount <= 6
+          ? "🎬 TACTICAL SOLVE"
+          : "🛡️ CLUTCH RECOVERY";
+
+  const protocolBadge = !solved
+    ? "⚠️ DOSSIER FORFEIT"
+    : breakdown.noCaseFileBonus > 0
+      ? "🔒 PURE INSTINCT (+300)"
+      : cluesUsed === 0
+        ? "📂 CASE FILE OPENED"
+        : `🔍 ${cluesUsed} CLUE${cluesUsed === 1 ? "" : "S"} DECRYPTED`;
+
+  const swordLabel = !solved
+    ? "BROKEN BLADE"
+    : guessCount === 1
+      ? "1-SHOT SLAYER"
+      : guessCount <= 3
+        ? "DIAMOND EDGE"
+        : "LOOT CLAIMED";
+
+  return (
+    <div className="mg-sticker-board" aria-label="Arcade achievement stickers and case telemetry">
+      <div className="mg-sticker-board-bar">
+        <span className="mg-sticker-board-kicker">★ ARCADE STICKER DECK // CASE TELEMETRY</span>
+        <span className="mg-sticker-board-status">
+          {solved ? `RESPECT +${breakdown.total} PTS` : "STATUS: GAME OVER"}
+        </span>
+      </div>
+
+      {/* Die-Cut Collector Stickers Row */}
+      <div className="mg-sticker-row">
+        {/* Sticker 1: GTA Mission Passed! Respect + OR 8-Bit Arcade Game Over */}
+        {solved ? (
+          <div className="mg-diecut-sticker mg-sticker-mission" title="Mission Passed! Respect +">
+            <span className="mg-mission-line1">MISSION PASSED!</span>
+            <span className="mg-mission-line2">RESPECT +</span>
+          </div>
+        ) : (
+          <div className="mg-diecut-sticker mg-sticker-gameover" title="Game Over">
+            <span className="mg-gameover-line">GAME</span>
+            <span className="mg-gameover-line">OVER</span>
+          </div>
+        )}
+
+        {/* Sticker 2: +1000 AURA 8-Bit Pixel Die-Cut Sticker */}
+        <div className="mg-diecut-sticker mg-sticker-aura" title={`${auraPoints} AURA`}>
+          <span className="mg-aura-num">{auraPoints}</span>
+          <span className="mg-aura-word">AURA</span>
+        </div>
+
+        {/* Sticker 3: 8-Bit Blocky TNT Die-Cut Sticker */}
+        <div className="mg-diecut-sticker mg-sticker-pixel" title="Blocky TNT Explosive Sticker">
+          <svg
+            className="mg-pixel-sticker-svg"
+            viewBox="0 0 16 16"
+            shapeRendering="crispEdges"
+            aria-hidden="true"
+          >
+            {/* White Die-Cut Sticker Contour */}
+            <rect x="2" y="2" width="12" height="13" fill="#FFFFFF" />
+            <rect x="6" y="0" width="5" height="3" fill="#FFFFFF" />
+            {/* Black Pixel Outline */}
+            <rect x="3" y="3" width="10" height="11" fill="#111111" />
+            {/* Fuse & Spark */}
+            <rect x="7" y="1" width="2" height="2" fill="#4A3B32" />
+            <rect x="9" y="0" width="2" height="2" fill="#FFD600" />
+            <rect x="10" y="1" width="1" height="1" fill="#FF5500" />
+            {/* Top Red Dynamite Bars */}
+            <rect x="4" y="4" width="8" height="3" fill="#E52521" />
+            <rect x="5" y="4" width="1" height="3" fill="#FF6B6B" />
+            <rect x="8" y="4" width="1" height="3" fill="#B71C1C" />
+            {/* White TNT Center Band */}
+            <rect x="4" y="7" width="8" height="3" fill="#F8F8F8" />
+            {/* Tiny Pixel "TNT" Glyphs */}
+            <rect x="5" y="8" width="1" height="2" fill="#111111" />
+            <rect x="7" y="8" width="2" height="2" fill="#111111" />
+            <rect x="10" y="8" width="1" height="2" fill="#111111" />
+            {/* Bottom Red Dynamite Bars */}
+            <rect x="4" y="10" width="8" height="3" fill="#D32F2F" />
+            <rect x="5" y="10" width="1" height="3" fill="#FF6B6B" />
+            <rect x="8" y="10" width="1" height="3" fill="#9A0007" />
+          </svg>
+          <span className="mg-pixel-sticker-label">{solved ? "MIND BLOWN" : "DETONATED"}</span>
+        </div>
+
+        {/* Sticker 4: 8-Bit Blocky Diamond Sword Die-Cut Sticker */}
+        <div className="mg-diecut-sticker mg-sticker-pixel" title={swordLabel}>
+          <svg
+            className="mg-pixel-sticker-svg"
+            viewBox="0 0 16 16"
+            shapeRendering="crispEdges"
+            aria-hidden="true"
+          >
+            {/* White Die-Cut Contour */}
+            <polygon points="10,1 15,1 15,6 8,13 5,15 1,15 1,11 3,8" fill="#FFFFFF" />
+            {/* Cyan Diamond Blade */}
+            <rect x="11" y="2" width="3" height="3" fill="#00E5FF" />
+            <rect x="9" y="4" width="3" height="3" fill="#00E5FF" />
+            <rect x="7" y="6" width="3" height="3" fill="#00E5FF" />
+            <rect x="5" y="8" width="3" height="3" fill="#00B8D4" />
+            {/* White Blade Highlight */}
+            <rect x="12" y="2" width="1" height="1" fill="#E0FFFF" />
+            <rect x="10" y="4" width="1" height="1" fill="#E0FFFF" />
+            <rect x="8" y="6" width="1" height="1" fill="#E0FFFF" />
+            {/* Crossguard */}
+            <rect x="3" y="8" width="2" height="2" fill="#00838F" />
+            <rect x="6" y="11" width="2" height="2" fill="#00838F" />
+            <rect x="4" y="9" width="3" height="3" fill="#26C6DA" />
+            {/* Wood Hilt & Gold Pommel */}
+            <rect x="3" y="11" width="2" height="2" fill="#6D4C41" />
+            <rect x="2" y="12" width="2" height="2" fill="#FFD600" />
+          </svg>
+          <span className="mg-pixel-sticker-label">{swordLabel}</span>
+        </div>
+      </div>
+
+      {/* 3-Column Detective Telemetry Strip */}
+      <div className="mg-telemetry-strip">
+        <div className="mg-telemetry-cell">
+          <span className="mg-telemetry-key">SOLVE SPEED</span>
+          <strong className="mg-telemetry-val">{speedBadge}</strong>
+        </div>
+        <div className="mg-telemetry-cell">
+          <span className="mg-telemetry-key">CASE PROTOCOL</span>
+          <strong className="mg-telemetry-val">{protocolBadge}</strong>
+        </div>
+        <div className="mg-telemetry-cell">
+          <span className="mg-telemetry-key">ARCHIVE RANK</span>
+          <strong className="mg-telemetry-val">
+            🏆 RANK {breakdown.rank} · {breakdown.rankTitle}
+          </strong>
         </div>
       </div>
     </div>
@@ -1007,10 +1179,18 @@ export function WordGoblinGame() {
                       <div className="mg-banner-body">
                         <div className="mg-win-header">
                           <div className="mg-win-info">
-                            <p className="mg-banner-title">
-                              Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
-                            </p>
-                            {dayState.revealedAnswer && <AnswerCard answer={dayState.revealedAnswer} />}
+                            <div className="mg-win-info-top">
+                              <p className="mg-banner-title">
+                                Solved in {guesses.length} {guesses.length === 1 ? "guess" : "guesses"}!
+                              </p>
+                              {dayState.revealedAnswer && <AnswerCard answer={dayState.revealedAnswer} />}
+                            </div>
+                            <VictoryStickerDeck
+                              breakdown={scoreBreakdown}
+                              solved
+                              guessCount={guesses.length}
+                              cluesUsed={clues.length}
+                            />
                           </div>
                           <ScoreCard
                             breakdown={scoreBreakdown}
@@ -1032,12 +1212,20 @@ export function WordGoblinGame() {
                       <div className="mg-banner-body">
                         <div className="mg-win-header">
                           <div className="mg-win-info">
-                            <p className="mg-banner-title">The answer was</p>
-                            {dayState.revealedAnswer ? (
-                              <AnswerCard answer={dayState.revealedAnswer} />
-                            ) : (
-                              <p className="mg-banner-desc">You gave up today. Come back tomorrow for a new film.</p>
-                            )}
+                            <div className="mg-win-info-top">
+                              <p className="mg-banner-title">The answer was</p>
+                              {dayState.revealedAnswer ? (
+                                <AnswerCard answer={dayState.revealedAnswer} />
+                              ) : (
+                                <p className="mg-banner-desc">You gave up today. Come back tomorrow for a new film.</p>
+                              )}
+                            </div>
+                            <VictoryStickerDeck
+                              breakdown={scoreBreakdown}
+                              solved={false}
+                              guessCount={guesses.length}
+                              cluesUsed={clues.length}
+                            />
                           </div>
                           <ScoreCard
                             breakdown={scoreBreakdown}
