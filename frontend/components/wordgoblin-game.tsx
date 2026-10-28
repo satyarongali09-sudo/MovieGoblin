@@ -166,87 +166,32 @@ function VictoryStickerDeck({
   guessCount,
   cluesUsed,
   dateLabel,
-  answer,
 }: VictoryStickerDeckProps) {
-  const [isSharing, setIsSharing] = useState(false);
-  const [spoilerFree, setSpoilerFree] = useState(true);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
     setToastMsg(msg);
     setTimeout(() => {
       setToastMsg((cur) => (cur === msg ? null : cur));
-    }, 4500);
+    }, 4000);
   };
 
-  const handleShareDeck = async () => {
-    setIsSharing(true);
-    try {
-      const res = await shareCardImage({
-        breakdown,
-        answer,
-        dateLabel,
-        solved,
-        format: "sticker",
-        spoilerFree,
-      });
-      if (res === "copied") {
-        showToast("✓ Spoiler-free sticker deck copied to clipboard! Paste into Stories or chat.");
-      } else if (res === "downloaded") {
-        showToast("✓ Spoiler-free sticker deck saved as PNG image!");
-      } else {
-        showToast("✓ Sticker deck shared!");
-      }
-    } catch (e) {
-      console.warn("Share deck failed:", e);
-      showToast("Share failed. Tap 'Copy Sticker' instead.");
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleCopyDeck = async () => {
-    setIsSharing(true);
+  const handleCopyDeckSticker = async () => {
     try {
       const ok = await copyCardImageToClipboard({
         breakdown,
-        answer,
         dateLabel,
         solved,
         format: "sticker",
-        spoilerFree,
+        spoilerFree: true,
       });
       if (ok) {
-        showToast("✓ Spoiler-free sticker deck copied to clipboard! Safe to share in Stories or chat.");
+        showToast("✓ Sticker deck image copied to clipboard! Paste into Stories or chat.");
       } else {
-        showToast("✓ Spoiler-free sticker deck saved as PNG image!");
+        showToast("✓ Sticker deck saved as PNG image!");
       }
-    } catch (e) {
-      console.warn("Copy deck failed:", e);
-      showToast("Copy failed. Tap 'PNG' to download.");
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-  const handleSaveDeck = async () => {
-    setIsSharing(true);
-    try {
-      const blob = await generateStickerDeckBlob({
-        breakdown,
-        answer,
-        dateLabel,
-        solved,
-        format: "sticker",
-        spoilerFree,
-      });
-      downloadCardImage(blob, `MovieGoblin-${dateLabel}-StickerDeck.png`);
-      showToast("✓ Spoiler-free sticker deck saved as high-res PNG!");
-    } catch (e) {
-      console.warn("Save deck failed:", e);
-      showToast("Could not download sticker image.");
-    } finally {
-      setIsSharing(false);
+    } catch {
+      showToast("Tap 'Copy' in the share panel on the right.");
     }
   };
 
@@ -287,29 +232,12 @@ function VictoryStickerDeck({
         <span className="mg-sticker-board-datetime">{dateLabel} · AUTHENTICATED</span>
       </div>
 
-      {/* Sub-bar with points respect and quick share pill */}
+      {/* Sub-bar with points respect status */}
       <div className="mg-sticker-board-subbar">
         <span className="mg-sticker-board-status">
           {solved ? `RESPECT +${breakdown.total} PTS` : "STATUS: GAME OVER"}
         </span>
-        <div className="mg-sticker-subbar-actions">
-          <button
-            type="button"
-            className={`mg-sticker-pill-toggle ${spoilerFree ? "is-active" : ""}`}
-            onClick={() => setSpoilerFree((s) => !s)}
-            title="Toggle spoiler protection for shared images"
-          >
-            {spoilerFree ? "🔒 SPOILER FREE: ON" : "👁️ SPOILER FREE: OFF"}
-          </button>
-          <button
-            type="button"
-            className="mg-sticker-pill-share"
-            disabled={isSharing}
-            onClick={() => void handleShareDeck()}
-          >
-            {isSharing ? "⏳ CAPTURING..." : "📸 SHARE STICKER CARD"}
-          </button>
-        </div>
+        <span className="mg-sticker-deck-hint">COLLECTOR TROPHY DECK · TAP STICKER TO COPY</span>
       </div>
 
       {/* Die-Cut Collector Stickers Row */}
@@ -318,8 +246,8 @@ function VictoryStickerDeck({
         {solved ? (
           <div
             className="mg-diecut-sticker mg-sticker-mission"
-            title="Mission Passed! Respect +"
-            onClick={() => void handleCopyDeck()}
+            title="Mission Passed! Respect + (Tap to copy)"
+            onClick={() => void handleCopyDeckSticker()}
             role="button"
             tabIndex={0}
           >
@@ -329,8 +257,8 @@ function VictoryStickerDeck({
         ) : (
           <div
             className="mg-diecut-sticker mg-sticker-gameover"
-            title="Game Over"
-            onClick={() => void handleCopyDeck()}
+            title="Game Over (Tap to copy)"
+            onClick={() => void handleCopyDeckSticker()}
             role="button"
             tabIndex={0}
           >
@@ -343,7 +271,7 @@ function VictoryStickerDeck({
         <div
           className="mg-diecut-sticker mg-sticker-aura"
           title={`${auraPoints} AURA (Tap to copy)`}
-          onClick={() => void handleCopyDeck()}
+          onClick={() => void handleCopyDeckSticker()}
           role="button"
           tabIndex={0}
         >
@@ -355,7 +283,7 @@ function VictoryStickerDeck({
         <div
           className="mg-diecut-sticker mg-sticker-pixel"
           title="Blocky TNT Explosive Sticker (Tap to copy)"
-          onClick={() => void handleCopyDeck()}
+          onClick={() => void handleCopyDeckSticker()}
           role="button"
           tabIndex={0}
         >
@@ -396,7 +324,7 @@ function VictoryStickerDeck({
         <div
           className="mg-diecut-sticker mg-sticker-pixel"
           title={`${swordLabel} (Tap to copy)`}
-          onClick={() => void handleCopyDeck()}
+          onClick={() => void handleCopyDeckSticker()}
           role="button"
           tabIndex={0}
         >
@@ -447,39 +375,7 @@ function VictoryStickerDeck({
         </div>
       </div>
 
-      {/* Interactive Quick-Share Bar for the Sticker Deck */}
-      <div className="mg-sticker-action-bar">
-        <button
-          type="button"
-          className="mg-sticker-btn-share"
-          disabled={isSharing}
-          onClick={() => void handleShareDeck()}
-          title="Share high-res sticker deck with date, time, and site branding"
-        >
-          <span className="mg-sticker-btn-icon">{isSharing ? "⏳" : "📸"}</span>
-          <span>{isSharing ? "GENERATING..." : "SHARE STICKER CARD"}</span>
-        </button>
-        <button
-          type="button"
-          className="mg-sticker-btn-sub"
-          disabled={isSharing}
-          onClick={() => void handleCopyDeck()}
-          title="Copy sticker deck image to clipboard (paste into Instagram Stories or chat)"
-        >
-          <span>📋</span> COPY STICKER
-        </button>
-        <button
-          type="button"
-          className="mg-sticker-btn-sub"
-          disabled={isSharing}
-          onClick={() => void handleSaveDeck()}
-          title="Save sticker deck as PNG image"
-        >
-          <span>💾</span> SAVE PNG
-        </button>
-      </div>
-
-      {/* Local Toast Feedback */}
+      {/* Toast Feedback */}
       {toastMsg && (
         <div className="mg-sticker-toast" role="status" aria-live="polite">
           <span className="mg-sc-toast-dot">●</span>
@@ -769,7 +665,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
         {solved && (
           <>
             <div className="mg-sc-format-bar">
-              <span className="mg-sc-format-label">SHARE AS:</span>
+              <span className="mg-sc-format-label">FORMAT:</span>
               <button
                 type="button"
                 className={`mg-sc-fmt-btn ${format === "sticker" ? "is-active" : ""}`}
@@ -784,14 +680,6 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
               >
                 🎴 DUO CARDS
               </button>
-              <button
-                type="button"
-                className={`mg-sc-fmt-btn mg-sc-fmt-spoiler ${spoilerFree ? "is-active" : ""}`}
-                onClick={() => setSpoilerFree((s) => !s)}
-                title="Toggle spoiler protection for shared images"
-              >
-                {spoilerFree ? "🔒 SPOILER FREE" : "👁️ SHOW TITLE"}
-              </button>
             </div>
 
             <button
@@ -801,13 +689,7 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
               onClick={() => void handleShareCardImage()}
             >
               <span className="mg-sc-action-icon">{isGenerating ? "⏳" : "📸"}</span>
-              <span>
-                {isGenerating
-                  ? "CAPTURING CARD..."
-                  : format === "sticker"
-                    ? "SHARE STICKER DECK IMAGE"
-                    : "SHARE COLLECTOR DUO CARDS"}
-              </span>
+              <span>{isGenerating ? "CAPTURING..." : "SHARE SCORE CARD"}</span>
             </button>
 
             <div className="mg-sc-actions-row">
@@ -816,9 +698,9 @@ function ScoreCard({ breakdown, answer, dateLabel, solved, copied, onShare, onRe
                 className="mg-sc-btn-sub"
                 disabled={isGenerating}
                 onClick={() => void handleCopyCardImage()}
-                title="Copy card image to clipboard (paste as sticker in Instagram Stories or chat)"
+                title="Copy card image to clipboard (paste as sticker into Instagram Stories or chat)"
               >
-                <span>📋</span> COPY IMAGE
+                <span>📋</span> COPY
               </button>
               <button
                 type="button"
@@ -1729,47 +1611,122 @@ export function WordGoblinGame() {
 
                       {caseFileVisible && (
                         <div className="mg-casefile-drawer">
+                          <div className="mg-casefile-drawer-header">
+                            <span className="mg-casefile-drawer-title">
+                              ★ CLASSIFIED DOSSIER // DECRYPTED EVIDENCE BOARD
+                            </span>
+                            <span className="mg-casefile-drawer-status">
+                              {unlockedCaseCount}/5 INTEL CHANNELS
+                            </span>
+                          </div>
+
                           <div className="mg-casefile-grid">
-                            <div className="mg-case-row">
-                              <span className={caseFile.director ? "mg-badge mg-badge-d is-found" : "mg-badge mg-badge-d"}>
-                                D
-                              </span>
-                              <span className="mg-case-label">Director</span>
-                              <span className={caseFile.director ? "mg-case-val" : "mg-case-val is-unknown"}>
-                                {caseFile.director ?? "???"}
-                              </span>
+                            {/* Card 1: Director / Auteur */}
+                            <div className="mg-case-row mg-case-row-third">
+                              <div className="mg-case-header">
+                                <span className={caseFile.director ? "mg-badge mg-badge-d is-found" : "mg-badge mg-badge-d"}>
+                                  D
+                                </span>
+                                <span className="mg-case-label">AUTEUR / DIRECTOR</span>
+                              </div>
+                              <div className="mg-case-body">
+                                <span className={caseFile.director ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                  {caseFile.director ?? "PROFILE CLASSIFIED [???]"}
+                                </span>
+                                {caseFile.director && <span className="mg-case-stamp">DECRYPTED</span>}
+                              </div>
                             </div>
-                            <div className="mg-case-row">
-                              <span className={caseFile.cast.length ? "mg-badge mg-badge-star is-found" : "mg-badge mg-badge-star"}>
-                                ★
-                              </span>
-                              <span className="mg-case-label">Cast</span>
-                              <span className={caseFile.cast.length ? "mg-case-val" : "mg-case-val is-unknown"}>
-                                {caseFile.cast.length ? caseFile.cast.join(", ") : "???"}
-                              </span>
+
+                            {/* Card 2: Release Year / Chronology */}
+                            <div className="mg-case-row mg-case-row-third">
+                              <div className="mg-case-header">
+                                <span className={yearWindow ? "mg-badge mg-badge-year is-found" : "mg-badge mg-badge-year"}>
+                                  YR
+                                </span>
+                                <span className="mg-case-label">CHRONOLOGY</span>
+                              </div>
+                              <div className="mg-case-body">
+                                <span className={yearWindow ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                  {yearWindow ?? "TIMELINE LOCKED [????]"}
+                                </span>
+                                {yearWindow && <span className="mg-case-stamp">RADAR PINPOINTED</span>}
+                              </div>
                             </div>
-                            <div className="mg-case-row">
-                              <span className={yearWindow ? "mg-badge mg-badge-year is-found" : "mg-badge mg-badge-year"}>
-                                YR
-                              </span>
-                              <span className="mg-case-label">Released</span>
-                              <span className={yearWindow ? "mg-case-val" : "mg-case-val is-unknown"}>
-                                {yearWindow ?? "???"}
-                              </span>
+
+                            {/* Card 3: Language / Audio */}
+                            <div className="mg-case-row mg-case-row-third">
+                              <div className="mg-case-header">
+                                <span className={caseFile.language ? "mg-badge is-found" : "mg-badge"}>
+                                  LG
+                                </span>
+                                <span className="mg-case-label">DIALECT / AUDIO</span>
+                              </div>
+                              <div className="mg-case-body">
+                                <span className={caseFile.language ? "mg-case-val" : "mg-case-val is-unknown"}>
+                                  {caseFile.language ? `${caseFile.language.toUpperCase()} · ORIGINAL` : "AUDIO ENCRYPTED"}
+                                </span>
+                                {caseFile.language && <span className="mg-case-stamp">VERIFIED</span>}
+                              </div>
                             </div>
-                            <div className="mg-case-row">
-                              <span className={caseFile.genres.length ? "mg-badge is-found" : "mg-badge"}>GN</span>
-                              <span className="mg-case-label">Genre</span>
-                              <span className={caseFile.genres.length ? "mg-case-val" : "mg-case-val is-unknown"}>
-                                {caseFile.genres.length ? caseFile.genres.join(" · ") : "???"}
-                              </span>
+
+                            {/* Card 4: Cast Ensemble (Spans half width, shows top 2 leads + classified badge for curiosity) */}
+                            <div className="mg-case-row mg-case-row-half">
+                              <div className="mg-case-header">
+                                <span className={caseFile.cast.length ? "mg-badge mg-badge-star is-found" : "mg-badge mg-badge-star"}>
+                                  ★
+                                </span>
+                                <span className="mg-case-label">KEY CAST ENSEMBLE</span>
+                                {caseFile.cast.length > 2 && (
+                                  <span className="mg-case-more-pill">
+                                    +{caseFile.cast.length - 2} IN FILE
+                                  </span>
+                                )}
+                              </div>
+                              <div className="mg-case-body">
+                                {caseFile.cast.length > 0 ? (
+                                  <div className="mg-case-cast-list">
+                                    <span className="mg-case-val">
+                                      {caseFile.cast.slice(0, 2).join(", ")}
+                                    </span>
+                                    {caseFile.cast.length > 2 && (
+                                      <span className="mg-case-cast-hint">
+                                        [+{caseFile.cast.length - 2} other ensemble actors redacted to preserve challenge]
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="mg-case-val is-unknown">
+                                    ACTOR DOSSIER SEALED [???]
+                                  </span>
+                                )}
+                                {caseFile.cast.length > 0 && <span className="mg-case-stamp">INTERCEPTED</span>}
+                              </div>
                             </div>
-                            <div className="mg-case-row">
-                              <span className={caseFile.language ? "mg-badge is-found" : "mg-badge"}>LG</span>
-                              <span className="mg-case-label">Language</span>
-                              <span className={caseFile.language ? "mg-case-val" : "mg-case-val is-unknown"}>
-                                {caseFile.language ?? "???"}
-                              </span>
+
+                            {/* Card 5: Thematic Genre Spectrum (Spans half width, pill tags) */}
+                            <div className="mg-case-row mg-case-row-half">
+                              <div className="mg-case-header">
+                                <span className={caseFile.genres.length ? "mg-badge is-found" : "mg-badge"}>
+                                  GN
+                                </span>
+                                <span className="mg-case-label">THEMATIC SPECTRUM</span>
+                              </div>
+                              <div className="mg-case-body">
+                                {caseFile.genres.length > 0 ? (
+                                  <div className="mg-case-genres">
+                                    {caseFile.genres.map((g) => (
+                                      <span key={g} className="mg-case-genre-pill">
+                                        {g}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="mg-case-val is-unknown">
+                                    GENRE MATRIX UNMAPPED
+                                  </span>
+                                )}
+                                {caseFile.genres.length > 0 && <span className="mg-case-stamp">MATCHED</span>}
+                              </div>
                             </div>
                           </div>
                         </div>

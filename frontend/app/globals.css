@@ -2150,7 +2150,7 @@ p {
   opacity: 0.9;
 }
 
-/* ── Case File Expanded Drawer ── Harmonized with Warm Cream Retro UI ── */
+/* ── Case File Expanded Drawer ── Classified Evidence Board (Balanced 3 + 2 Grid) ── */
 .mg-casefile-drawer {
   background: var(--mg-cream);
   color: var(--mg-ink);
@@ -2162,48 +2162,148 @@ p {
   animation: mg-fade-in 0.15s ease-out;
 }
 
+.mg-casefile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1.5px dashed rgba(11, 11, 11, 0.3);
+  font-family: var(--mg-pixel);
+  font-size: 8px;
+  color: var(--mg-ink);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.mg-casefile-drawer-status {
+  padding: 2.5px 6px;
+  background: var(--mg-ink);
+  color: var(--mg-screen);
+  border-radius: 4px;
+}
+
 .mg-casefile-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 10px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  width: 100%;
+}
+
+.mg-case-row-third {
+  flex: 1 1 calc(33.333% - 9px);
+  min-width: 200px;
+}
+
+.mg-case-row-half {
+  flex: 1 1 calc(50% - 6px);
+  min-width: 260px;
 }
 
 .mg-case-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   background: #FFFFFF;
   border: 2px solid var(--mg-ink);
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-size: 14px;
-  box-shadow: 2px 2px 0 var(--mg-ink);
+  border-radius: 9px;
+  padding: 10px 12px;
+  box-shadow: 2.5px 2.5px 0 var(--mg-ink);
+  box-sizing: border-box;
+}
+
+.mg-case-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .mg-case-label {
   font-family: var(--mg-pixel);
-  font-size: 8.5px;
+  font-size: 7.5px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--mg-ink);
-  opacity: 0.85;
-  min-width: 64px;
+  opacity: 0.8;
+}
+
+.mg-case-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .mg-case-val {
+  font-family: var(--mg-sans);
+  font-size: 14.5px;
   font-weight: 700;
   color: var(--mg-ink);
   line-height: 1.35;
   overflow-wrap: anywhere;
-  flex: 1;
 }
 
 .mg-case-val.is-unknown {
-  opacity: 0.55;
+  opacity: 0.5;
   font-family: var(--mg-pixel);
-  font-size: 9px;
-  letter-spacing: 0.08em;
+  font-size: 8px;
+  letter-spacing: 0.06em;
   color: #6E5F55;
+}
+
+.mg-case-stamp {
+  font-family: var(--mg-pixel);
+  font-size: 6.5px;
+  padding: 2.5px 5px;
+  border-radius: 4px;
+  background: rgba(56, 239, 125, 0.15);
+  color: #0d8036;
+  border: 1px solid #0d8036;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.mg-case-more-pill {
+  font-family: var(--mg-pixel);
+  font-size: 6.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 85, 0, 0.15);
+  color: #D32F2F;
+  border: 1px solid #D32F2F;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.mg-case-cast-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mg-case-cast-hint {
+  font-family: var(--mg-sans);
+  font-size: 11px;
+  font-style: italic;
+  color: #6E5F55;
+}
+
+.mg-case-genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mg-case-genre-pill {
+  font-family: var(--mg-pixel);
+  font-size: 7.5px;
+  padding: 4px 7px;
+  border-radius: 5px;
+  background: var(--mg-ink);
+  color: var(--mg-cream);
+  letter-spacing: 0.03em;
 }
 
 /* ── Clue Ladder ───────────────────────────────────────────────────────── */
@@ -2979,69 +3079,10 @@ p {
   text-transform: uppercase;
 }
 
-.mg-sticker-subbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.mg-sticker-pill-toggle {
-  background: rgba(253, 227, 207, 0.12);
-  color: var(--mg-cream);
-  border: 1.5px solid rgba(253, 227, 207, 0.35);
-  border-radius: 5px;
-  font-family: var(--mg-pixel);
-  font-size: 7px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.mg-sticker-pill-toggle:hover {
-  background: rgba(253, 227, 207, 0.22);
-}
-
-.mg-sticker-pill-toggle.is-active {
-  background: #D32F2F;
-  color: #FFFFFF;
-  border-color: #FFFFFF;
-  box-shadow: 1px 1px 0 #000000;
-}
-
-.mg-sticker-pill-share {
-  background: var(--mg-screen);
-  color: var(--mg-ink);
-  border: 1.5px solid var(--mg-ink);
-  border-radius: 5px;
-  font-family: var(--mg-pixel);
-  font-size: 7px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  padding: 3px 8px;
-  cursor: pointer;
-  box-shadow: 1.5px 1.5px 0 var(--mg-ink);
-  transition: transform 0.1s ease, filter 0.12s ease;
-}
-
-.mg-sticker-pill-share:hover {
-  filter: brightness(1.1);
-  transform: translateY(-1px);
-}
-
-.mg-sc-fmt-spoiler.is-active {
-  background: #D32F2F;
-  color: #FFFFFF;
-  border-color: #D32F2F;
-}
-
 .mg-sticker-deck-hint {
   font-family: var(--mg-pixel);
-  font-size: 6.5px;
-  color: rgba(253, 227, 207, 0.65);
+  font-size: 7px;
+  color: rgba(253, 227, 207, 0.72);
   letter-spacing: 0.04em;
 }
 
@@ -3231,65 +3272,6 @@ p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-/* Sticker Deck Dedicated Action Bar & Feedback */
-.mg-sticker-action-bar {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
-  gap: 7px;
-  width: 100%;
-  padding-top: 4px;
-}
-
-.mg-sticker-btn-share {
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: var(--mg-screen);
-  color: var(--mg-ink);
-  border: 2px solid #FFFFFF;
-  border-radius: 8px;
-  font-family: var(--mg-pixel);
-  font-size: 8px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 #000000;
-  transition: all 0.12s ease;
-}
-
-.mg-sticker-btn-share:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 3px 3px 0 #000000;
-  filter: brightness(1.08);
-}
-
-.mg-sticker-btn-sub {
-  height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--mg-ink);
-  border: 2px solid #000000;
-  border-radius: 8px;
-  font-family: var(--mg-pixel);
-  font-size: 7.5px;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  cursor: pointer;
-  box-shadow: 2px 2px 0 #000000;
-  transition: all 0.12s ease;
-}
-
-.mg-sticker-btn-sub:hover:not(:disabled) {
-  background: #FFFFFF;
-  transform: translateY(-1px);
 }
 
 .mg-sticker-toast {
@@ -4390,31 +4372,43 @@ p {
     gap: 6px;
   }
 
-  .mg-sticker-pill-share {
-    font-size: 6px;
-    padding: 2.5px 6px;
-  }
-
   .mg-sticker-board-datetime {
     font-size: 6.5px;
   }
 
-  .mg-sticker-action-bar {
-    grid-template-columns: 1.3fr 1fr 1fr;
+  /* Mobile Case File Classified Dossier Responsive Layout */
+  .mg-casefile-grid {
+    gap: 8px;
+  }
+
+  .mg-case-row-third,
+  .mg-case-row-half {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .mg-case-row {
+    padding: 8px 10px;
     gap: 5px;
-    padding-top: 2px;
   }
 
-  .mg-sticker-btn-share {
-    height: 34px;
-    font-size: 7px;
-    padding: 0 4px;
+  .mg-case-label {
+    font-size: 6.5px;
   }
 
-  .mg-sticker-btn-sub {
-    height: 34px;
-    font-size: 6.8px;
-    padding: 0 4px;
+  .mg-case-val {
+    font-size: 13px;
+  }
+
+  .mg-case-stamp,
+  .mg-case-more-pill {
+    font-size: 6px;
+    padding: 2px 4px;
+  }
+
+  .mg-case-genre-pill {
+    font-size: 6.5px;
+    padding: 3px 6px;
   }
 
   .mg-mini-sticker {
