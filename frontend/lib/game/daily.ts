@@ -145,9 +145,19 @@ function getYesterdayUTC(): string {
 export function loadDayState(expectedDate?: string): DayState {
   const targetDate = expectedDate || getTodayUTC();
   try {
+    if (typeof window !== "undefined" && (window.location.search.includes("reset") || window.location.search.includes("new"))) {
+      localStorage.removeItem(DAY_KEY);
+      return { date: targetDate, guesses: [], solved: false, caseFileOpened: false };
+    }
     const raw = localStorage.getItem(DAY_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<DayState>;
+      // If the cached revealed answer was See Spot Run (the old non-Telugu test target),
+      // automatically clear it so the player can immediately play today's updated Telugu puzzle!
+      if (parsed.revealedAnswer?.title === "See Spot Run") {
+        localStorage.removeItem(DAY_KEY);
+        return { date: targetDate, guesses: [], solved: false, caseFileOpened: false };
+      }
       if (parsed.date === targetDate) {
         return {
           date: targetDate,

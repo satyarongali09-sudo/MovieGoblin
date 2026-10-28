@@ -465,11 +465,19 @@ export class MovieGoblinService {
       throw new CatalogUnavailableError("Cannot assign daily puzzle: no active movies found in catalog.");
     }
 
+    // Testing override: User requested today's puzzle to be a Telugu film for testing match percentages
+    const TESTING_DAILY_OVERRIDES: Record<string, string> = {
+      "2026-10-28": "Baahubali: The Beginning",
+      "2026-10-29": "Baahubali: The Beginning",
+    };
+    const overrideTitle = process.env.DAILY_TARGET_OVERRIDE || TESTING_DAILY_OVERRIDES[dateUTC];
+
     // 2. Check if assignment already exists in moviegoblin_daily
     const existingMovieId = await this.repo.getDailyAssignment(dateUTC);
     if (existingMovieId) {
       const matched = activeMovies.find((m) => m.id === existingMovieId);
-      if (matched) {
+      const isStaleOverride = overrideTitle && matched && normalizeTitle(matched.title) !== normalizeTitle(overrideTitle);
+      if (matched && !isStaleOverride) {
         return matched;
       }
     }
@@ -483,8 +491,11 @@ export class MovieGoblinService {
     const twoDaysAgoId = await this.repo.getDailyAssignment(twoDaysAgoUTC).catch(() => null);
     const twoDaysAgoMovie = twoDaysAgoId ? activeMovies.find((m) => m.id === twoDaysAgoId) ?? null : null;
 
-    // 4. Select candidate using intelligent dissimilarity & multilingual cinema rotation
-    const candidate = selectDailyTarget(activeMovies, dateUTC, yesterdayMovie, twoDaysAgoMovie);
+    // 4. Select candidate using intelligent dissimilarity & multilingual cinema rotation (with testing override)
+    const overrideCandidate = overrideTitle
+      ? activeMovies.find((m) => normalizeTitle(m.title) === normalizeTitle(overrideTitle))
+      : null;
+    const candidate = overrideCandidate || selectDailyTarget(activeMovies, dateUTC, yesterdayMovie, twoDaysAgoMovie);
 
     // 5. Safely record assignment in moviegoblin_daily (conflict-safe)
     const assignedId = await this.repo.createDailyAssignment(dateUTC, candidate.id);

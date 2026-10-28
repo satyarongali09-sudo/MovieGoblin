@@ -726,6 +726,30 @@ export function WordGoblinGame() {
                             >
                               {copiedShare ? "✓ COPIED SCORE" : "SHARE SCORE REPORT"}
                             </button>
+                            <button
+                              type="button"
+                              className="mg-btn-reset-test"
+                              style={{
+                                marginTop: "8px",
+                                width: "100%",
+                                padding: "8px 12px",
+                                background: "#0a0a0a",
+                                color: "#f97316",
+                                border: "1.5px solid #f97316",
+                                fontFamily: "var(--font-mono, monospace)",
+                                fontSize: "11px",
+                                fontWeight: "bold",
+                                letterSpacing: "1px",
+                                cursor: "pointer",
+                                textTransform: "uppercase",
+                              }}
+                              onClick={() => {
+                                localStorage.removeItem("wg:day");
+                                window.location.reload();
+                              }}
+                            >
+                              🔄 PLAY NEW / RESET PUZZLE
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -754,6 +778,30 @@ export function WordGoblinGame() {
                             <p className="mg-score-note">
                               Solve tomorrow&apos;s film without opening the Case File for +300 bonus points!
                             </p>
+                            <button
+                              type="button"
+                              className="mg-btn-reset-test"
+                              style={{
+                                marginTop: "8px",
+                                width: "100%",
+                                padding: "8px 12px",
+                                background: "#0a0a0a",
+                                color: "#f97316",
+                                border: "1.5px solid #f97316",
+                                fontFamily: "var(--font-mono, monospace)",
+                                fontSize: "11px",
+                                fontWeight: "bold",
+                                letterSpacing: "1px",
+                                cursor: "pointer",
+                                textTransform: "uppercase",
+                              }}
+                              onClick={() => {
+                                localStorage.removeItem("wg:day");
+                                window.location.reload();
+                              }}
+                            >
+                              🔄 PLAY NEW / RESET PUZZLE
+                            </button>
                           </div>
                         </div>
                       </div>
